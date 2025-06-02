@@ -21,6 +21,9 @@ export ENV_OBFUSCATE_PART="TOKEN API KEY"
 #export WANTED_GID=1000
 # DO NOT use `id -u` or `id -g` to set the values, use the actual values -- the script is started by comfytoo with 1025/1025
 
+# Use socat to listen on port 8188 and forward to 127.0.0.1:8181 (ie use an alternate port for Comfy to run)
+#export USE_SOCAT="true"
+
 # Base directory
 #export BASE_DIRECTORY="/basedir"
 

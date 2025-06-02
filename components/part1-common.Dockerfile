@@ -33,6 +33,7 @@ RUN apt-get update -y --fix-missing \
     git \
     sudo \
     libglib2.0-0 \
+    socat \
   && apt-get clean
 
 # Add libEGL ICD loaders and libraries + Vulkan ICD loaders and libraries

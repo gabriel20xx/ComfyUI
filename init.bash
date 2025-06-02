@@ -54,10 +54,22 @@ itdir=/tmp/comfy_init
 if [ ! -d $itdir ]; then mkdir $itdir; chmod 777 $itdir; fi
 if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
+# Default behavior: listen on 127.0.0.1
+USE_SOCAT=${USE_SOCAT:-"false"}
+if [ "A${USE_SOCAT}" = "Afalse" ]; then
+  LISTEN_ADDRESS="0.0.0.0"
+  LISTEN_PORT="8188"
+  echo "== Using default behavior: ComfyUI listens on ${LISTEN_ADDRESS}:${LISTEN_PORT}"
+else
+  LISTEN_ADDRESS="127.0.0.1"
+  LISTEN_PORT="8181"
+  echo "== Using alternate behavior: socat listens on 0.0.0.0:8188 -> forward to ComfyUI on ${LISTEN_ADDRESS}:${LISTEN_PORT}"
+fi
+
 # Set ComfyUI base command line
 it=$itdir/comfy_cmdline_base
 if [ -f $it ]; then COMFY_CMDLINE_BASE=$(cat $it); fi
-COMFY_CMDLINE_BASE=${COMFY_CMDLINE_BASE:-"python3 ./main.py --listen 0.0.0.0 --disable-auto-launch"}
+COMFY_CMDLINE_BASE=${COMFY_CMDLINE_BASE:-"python3 ./main.py --listen ${LISTEN_ADDRESS} --port ${LISTEN_PORT} --disable-auto-launch"}
 if [ ! -f $it ]; then write_worldtmpfile $it "$COMFY_CMDLINE_BASE"; fi
 echo "-- COMFY_CMDLINE_BASE: \"${COMFY_CMDLINE_BASE}\""
 
@@ -469,10 +481,7 @@ if [ ! -d ComfyUI-Manager ]; then error_exit "ComfyUI-Manager not found"; fi
 echo "== Installing/Updating ComfyUI-Manager's requirements (from ${customnodes_dir}/ComfyUI-Manager/requirements.txt)"
 pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r ${customnodes_dir}/ComfyUI-Manager/requirements.txt || error_exit "ComfyUI-Manager CLI requirements install/upgrade failed" 
 
-# Lower security_level for ComfyUI-Manager to allow access from outside the container
-# This is needed to allow the WebUI to be served on 0.0.0.0 ie all interfaces and not just localhost (which would be limited to within the container)
-# Please see https://github.com/ltdrdata/ComfyUI-Manager?tab=readme-ov-file#security-policy for more details
-# 
+# Please see https://github.com/ltdrdata/ComfyUI-Manager?tab=readme-ov-file#security-policy for details on authorized values
 # recent releases of ComfyUI-Manager have a config.ini file in the user folder, if this is not present, we expect it in the default folder
 cm_conf_user=${COMFYUI_PATH}/user/default/ComfyUI-Manager/config.ini
 cm_conf=${COMFYUI_PATH}/custom_nodes/ComfyUI-Manager/config.ini
@@ -605,6 +614,11 @@ run_userscript $it "chmod"
 it=/tmp/comfy_env_final.txt
 save_env $it
 
+# Run socat if requested
+if [ ! -z ${USE_SOCAT+x} ]; then
+  echo "== Running socat"
+  socat TCP4-LISTEN:8188,fork TCP4:127.0.0.1:8181 &
+fi
 
 echo ""; echo "==================="
 echo "== Running ComfyUI"
