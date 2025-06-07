@@ -22,10 +22,12 @@ export ENV_OBFUSCATE_PART="TOKEN API KEY"
 # DO NOT use `id -u` or `id -g` to set the values, use the actual values -- the script is started by comfytoo with 1025/1025
 
 # Use socat to listen on port 8188 and forward to 127.0.0.1:8181 (ie use an alternate port for Comfy to run)
+# default is false, value must set to "true" to enable
 #export USE_SOCAT="true"
 
-# Use pip upgrade: default is to use pip install, set to true to use pip install --upgrade
-#export USE_PIPUPGRADE="true"
+# Use pip upgrade: new default is to use pip install --upgrade, set to "false" to use pip install
+# default is true, value must set to "false" to disable
+#export USE_PIPUPGRADE="false"
 
 # Base directory
 #export BASE_DIRECTORY="/basedir"

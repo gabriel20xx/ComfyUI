@@ -54,23 +54,24 @@ itdir=/tmp/comfy_init
 if [ ! -d $itdir ]; then mkdir $itdir; chmod 777 $itdir; fi
 if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
-# Default behavior: listen on 127.0.0.1
+# Default behavior: listen on 0.0.0.0
 USE_SOCAT=${USE_SOCAT:-"false"}
-if [ "A${USE_SOCAT}" = "Afalse" ]; then
-  LISTEN_ADDRESS="0.0.0.0"
-  LISTEN_PORT="8188"
-  echo "== Using default behavior: ComfyUI listens on ${LISTEN_ADDRESS}:${LISTEN_PORT}"
-else
+if [ "A${USE_SOCAT}" = "Atrue" ]; then
   LISTEN_ADDRESS="127.0.0.1"
   LISTEN_PORT="8181"
   echo "== Using alternate behavior: socat listens on 0.0.0.0:8188 -> forward to ComfyUI on ${LISTEN_ADDRESS}:${LISTEN_PORT}"
+else
+  USE_SOCAT="false"
+  LISTEN_ADDRESS="0.0.0.0"
+  LISTEN_PORT="8188"
+  echo "== Using default behavior: ComfyUI listens on ${LISTEN_ADDRESS}:${LISTEN_PORT}"
 fi
 
-USE_PIPUPGRADE=${USE_PIPUPGRADE:-"false"}
-if [ "A${USE_PIPUPGRADE}" = "Afalse" ]; then
-  PIP3_CMD="pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org"
-else
+USE_PIPUPGRADE=${USE_PIPUPGRADE:-"true"}
+if [ "A${USE_PIPUPGRADE}" = "Atrue" ]; then
   PIP3_CMD="pip3 install --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org"
+else
+  PIP3_CMD="pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org"
 fi
 echo "== PIP3_CMD: \"${PIP3_CMD}\""
 
@@ -623,7 +624,8 @@ it=/tmp/comfy_env_final.txt
 save_env $it
 
 # Run socat if requested
-if [ ! -z ${USE_SOCAT+x} ]; then
+if [ "A${USE_SOCAT}" = "Atrue" ]; then
+  echo ""; echo "==================="
   echo "== Running socat"
   socat TCP4-LISTEN:8188,fork TCP4:127.0.0.1:8181 &
 fi
