@@ -75,6 +75,6 @@ if [ -d $dd ]; then
 fi
 git clone https://github.com/thu-ml/SageAttention.git
 cd SageAttention
-pip3 install -e . || error_exit "Failed to install SageAttention"
+python3 -s -m pip install . --no-build-isolation || error_exit "Failed to install SageAttention"
 
 exit 0
