@@ -79,6 +79,7 @@ If this version is incompatible with your container runtime, please see the list
 
 | tag | aka | note |
 | --- | --- | --- |
+| ubuntu22_cuda12.2.2-latest | | | 
 | ubuntu22_cuda12.3.2-latest | | | 
 | ubuntu22_cuda12.4.1-latest | | | 
 | ubuntu24_cuda12.5.1-latest | | was `latest` up to `20250320` release |
@@ -479,9 +480,12 @@ If the file is not executable, the tool will attempt to make it executable, but 
 
 ## 5.5. /userscripts_dir
 
-**WARNING**: This directory is used to run independent user scripts to perform additional operations that might damage your installation. This was added at the request of users trying to install packages from source. **Use with caution**. No support will be provided for issues resulting from the use of this directory. In case of trouble, it is recommended to delete the `run` folder and start a new container.
+🏗️ Please contribute to the `/userscripts_dir` if you have a script that you think would be useful to others or if you find an issue in the scripts provided. 
 
-Example scripts are provided to demonstrate the capability. None are executable by default. Those scripts were added to enable end users to install components that needed to be built at the time, not yet supported by ComfyUI Manager, or for which no compatible packages were available.
+⚠️ **WARNING**: This directory is used to run independent user scripts to perform additional operations that might damage your installation. This was added at the request of users trying to install packages from source. **Use with caution**. No support will be provided for issues resulting from the use of this directory. In case of trouble, it is recommended to delete the `run` folder and start a new container.
+
+Example scripts (which may not work --please feel free to contribute) are provided to demonstrate the capability. None are executable by default. Those scripts were added to enable end users to install components that needed to be built at the time, not yet supported by ComfyUI Manager, or for which no compatible packages were available.
+
 If a pip version is available, it is recommended to use it instead of the `/userscripts_dir`.
 
 
