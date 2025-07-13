@@ -56,7 +56,7 @@ if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
 # Default behavior: listen on 0.0.0.0
 USE_SOCAT=${USE_SOCAT:-"false"}
-if [ "A${USE_SOCAT}" = "Atrue" ]; then
+if [ "A${USE_SOCAT}" == "Atrue" ]; then
   LISTEN_ADDRESS="127.0.0.1"
   LISTEN_PORT="8181"
   echo "== Using alternate behavior: socat listens on 0.0.0.0:8188 -> forward to ComfyUI on ${LISTEN_ADDRESS}:${LISTEN_PORT}"
@@ -68,7 +68,7 @@ else
 fi
 
 USE_PIPUPGRADE=${USE_PIPUPGRADE:-"true"}
-if [ "A${USE_PIPUPGRADE}" = "Atrue" ]; then
+if [ "A${USE_PIPUPGRADE}" == "Atrue" ]; then
   PIP3_CMD="pip3 install --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org"
 else
   PIP3_CMD="pip3 install --trusted-host pypi.org --trusted-host files.pythonhosted.org"
@@ -150,6 +150,7 @@ BUILD_BASE_FILE=$it
 BUILD_BASE_SPECIAL="ubuntu22_cuda12.3.2" # this is a special value: when this feature was introduced, will be used to mark exisitng venv if the marker is not present
 echo "-- BUILD_BASE: \"${BUILD_BASE}\""
 if test -z ${BUILD_BASE}; then error_exit "Empty BUILD_BASE variable"; fi
+if [ "A${BUILD_BASE}" == "Aunknown" ]; then error_exit "Invalid BUILD_BASE value"; fi
 
 # Check user id and group id
 new_gid=`id -g`
@@ -189,7 +190,7 @@ load_env() {
       if [ -z "${!key}" ]; then
         echo "  ++ Setting environment variable $key [$rvalue]"
         doit=true
-      elif [ "$overwrite_if_different" = true ]; then
+      elif [ "A$overwrite_if_different" == "Atrue" ]; then
         cvalue="${!key}"
         if [[ "A${doobs}" == "Aobfuscate" ]]; then cvalue="**OBFUSCATED**"; fi
         if [[ "A${!key}" != "A${value}" ]]; then
@@ -250,18 +251,34 @@ fi
 
 # If a command line override was provided, run it
 if [ -f $cmd_override_file ]; then
-  echo "-- Running provided command line override from $cmd_override_file"
+  echo ""; echo "== Running provided command line override from $cmd_override_file"
   sudo chmod +x $cmd_override_file || error_exit "Failed to make $cmd_override_file executable"
   $cmd_override_file
   # This is a complete override of the script, exit right after
   exit 0
 fi
 
-echo "-- Confirming we have the NVIDIA driver loaded and showing details for the seen GPUs"
+echo ""; echo "== Confirming we have the NVIDIA driver loaded and showing details for the seen GPUs"
 if ! command -v nvidia-smi &> /dev/null; then
   error_exit "nvidia-smi not found"
 fi
 nvidia-smi || error_exit "Failed to run nvidia-smi"
+
+driver_cuda_version=$(nvidia-smi | grep "CUDA Version" | awk -F': ' '{print $3}' | cut -d' ' -f1)
+driver_cuda_major=$(echo "$driver_cuda_version" | awk -F'.' '{print $1}')
+driver_cuda_minor=$(echo "$driver_cuda_version" | awk -F'.' '{print $2}')
+echo ""; echo "-- Found Max driver CUDA version: $driver_cuda_version (major: $driver_cuda_major, minor: $driver_cuda_minor)"
+if [ "$driver_cuda_major" -lt 12 ]; then error_exit "Driver CUDA version $driver_cuda_version is below minimum version 12, please upgrade your driver"; fi
+
+
+# Checking the version of CUDA supported by the container itself to decide which PyTorch wheel to install (from BUILD_BASE)
+# per https://pytorch.org/ the default installation is 12.6, but 12.8 is available
+cuda_version=$(echo "${BUILD_BASE}" | awk -F'cuda' '{print $2}')
+cuda_major=$(echo "$cuda_version" | awk -F'.' '{print $1}')
+cuda_minor=$(echo "$cuda_version" | awk -F'.' '{print $2}')
+echo "-- Found Max container CUDA version: $cuda_version (major: $cuda_major, minor: $cuda_minor)"
+if [ $driver_cuda_minor -gt $cuda_minor ]; then echo "FYSA: The Driver CUDA supports a more recent version than the used container does. Consider using a more recent container version (if available)."; fi
+
 
 dir_validate() { # arg1 = directory to validate / arg2 = "mount" or ""; a "mount" can not be chmod'ed
   testdir=$1
@@ -288,7 +305,7 @@ dir_validate() { # arg1 = directory to validate / arg2 = "mount" or ""; a "mount
 }
 
 ## Path: ${COMFYUSER_DIR}/mnt
-echo "== Testing write access as the comfy user to the run directory"
+echo ""; echo "== Testing write access as the comfy user to the run directory"
 it_dir="${COMFYUSER_DIR}/mnt"
 dir_validate "${it_dir}" "mount"
 it="${it_dir}/.testfile"; touch $it && rm -f $it || error_exit "Failed to write to $it_dir"
@@ -418,6 +435,7 @@ echo -n "  Python version: "; python3 --version
 echo -n "  Pip version: "; pip3 --version
 echo -n "  python bin: "; which python3
 echo -n "  pip bin: "; which pip3
+echo "  PIP3_CMD: ${PIP3_CMD}"
 echo -n "  git bin: "; which git
 
 
@@ -465,6 +483,18 @@ it=${COMFYUSER_DIR}/mnt/postvenv_script.bash
 echo ""; echo "== Checking for post-venv script: ${it}"
 run_userscript $it "chmod"
 
+# Pre-install/upgrade Torch (default is true)
+PREINSTALL_TORCH=${PREINSTALL_TORCH:-"true"}
+if [ "A${PREINSTALL_TORCH}" == "Atrue" ]; then
+  echo ""; echo "== Pre-installing/Upgrading torch"
+  if [ "$cuda_minor" -lt 8 ]; then
+    it="${PIP3_CMD} torch torchvision torchaudio"
+  else
+    it="${PIP3_CMD} torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128"
+  fi
+  echo "Running: ${it}"
+  ${it} || error_exit "Torch installation failed"
+fi
 
 # Install ComfyUI's requirements
 cd ComfyUI
@@ -624,7 +654,7 @@ it=/tmp/comfy_env_final.txt
 save_env $it
 
 # Run socat if requested
-if [ "A${USE_SOCAT}" = "Atrue" ]; then
+if [ "A${USE_SOCAT}" == "Atrue" ]; then
   echo ""; echo "==================="
   echo "== Running socat"
   socat TCP4-LISTEN:8188,fork TCP4:127.0.0.1:8181 &
