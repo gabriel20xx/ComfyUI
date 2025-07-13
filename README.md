@@ -149,6 +149,7 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.11.2. Blackwell support](#5112-blackwell-support)
       - [5.11.2.1. Blackwell support on Unraid](#51121-blackwell-support-on-unraid)
     - [5.11.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#5113-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
+    - [5.11.4. Direct Cloud deployment: GPU Trader](#5114-direct-cloud-deployment-gpu-trader)
 - [6. Troubleshooting](#6-troubleshooting)
   - [6.1. Virtual environment](#61-virtual-environment)
   - [6.2. run directory](#62-run-directory)
@@ -844,6 +845,13 @@ Please note that an `output` folder will still exist in the `basedir` location (
 For Unraid users, those steps can done by editing the template from the `Docker` tab, `Edit`ing the container and using `Add another Path, Port, Variable, Label or Device` to:
 1. add a new `Path` entry (name it `output directory`) with a `Container Path` with value `/output`, a `Host Path` with your selected lcoation, for example `/preferredlocation/output`, and an `Access Mode` of `Read/Write`.
 2. edit the existing `COMFY_CMDLINE_EXTRA` variable to add the `--output-directory /output` option.
+
+### 5.11.4. Direct Cloud deployment: GPU Trader
+
+[GPU Trader](https://www.gputrader.io/) is using the container as the base for their ComfyUI deployment, and their frist "One-Click Deployments" that provides "ComfyUI, a file browser, Jupyter Notebook, and a terminal providing persistent storage and full access to create AI imagery".
+
+IF you are curious and want to learn more, check [this video](https://supercut.ai/share/gpu-trader/wb9biA0-r8H8dh1UKTL4k7).
+
 
 # 6. Troubleshooting
 
