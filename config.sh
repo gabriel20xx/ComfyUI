@@ -40,6 +40,8 @@ export ENV_OBFUSCATE_PART="TOKEN API KEY"
 # Force chown: force chown mode enabled, will force change directory ownership as comfy user during script rerun (might be slow)
 #export FORCE_CHOWN="false"
 
+# PREINSTALL_TORCH: preinstall torch: default is true, set to "false" to disable
+#export PREINSTALL_TORCH="false"
 
 ## NVIDIA specific adds
 #export NVIDIA_VISIBLE_DEVICES=all

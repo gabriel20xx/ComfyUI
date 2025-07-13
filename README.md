@@ -24,7 +24,6 @@
 When using RTX 50xx GPUs: 
 - you must use NVIDIA driver 570 (or above).
 - use the `ubuntu24_cuda12.8` container tag (or above).
-- for a compatible `PyTorch` installation, run `cp extras/PyTorch2.7-CUDA12.8.sh <YOURRUNFOLDER>/postvenv_script.bash` as described in the "Blackwell support" section. 
 
 <h2>About "latest" tag</h2>
 
@@ -141,13 +140,14 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.4.5. USE\_SOCAT](#545-use_socat)
     - [5.4.6. FORCE\_CHOWN](#546-force_chown)
     - [5.4.7. USE\_PIPUPGRADE](#547-use_pipupgrade)
+    - [5.4.8. PREINSTALL\_TORCH](#548-preinstall_torch)
   - [5.5. ComfyUI Manager \& Security levels](#55-comfyui-manager--security-levels)
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
   - [5.7. Misc](#57-misc)
     - [5.7.1. Windows: WSL2 and podman](#571-windows-wsl2-and-podman)
     - [5.7.2. Blackwell support](#572-blackwell-support)
-      - [5.7.2.1. Blackwell support on Unraid](#5721-blackwell-support-on-unraid)
+      - [5.7.2.1. PyTorch2.7-CUDA12.8.sh](#5721-pytorch27-cuda128sh)
     - [5.7.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#573-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
     - [5.7.4. run/pip\_cache and run/tmp](#574-runpip_cache-and-runtmp)
     - [5.7.5. Direct Cloud deployment: GPU Trader](#575-direct-cloud-deployment-gpu-trader)
@@ -617,6 +617,16 @@ This option is enabled by default as with the sepratation of the UI from the Cor
 
 It can be disabled by setting `USE_PIPUPGRADE=false`.
 
+### 5.4.8. PREINSTALL_TORCH
+
+The `PREINSTALL_TORCH` environment variable will attempt to automatically install/upgrade `torch` after the virtual environment is created.
+
+It will also check the version of CUDA supported by the container such that for CUDA 12.8, it will install `torch` with the `cu128` index-url.
+
+This should prevent the need to use the `PyTorch2.7-CUDA12.8.sh` script.
+
+This option is enabled by default. It can be disabled by setting `PREINSTALL_TORCH=false`.
+
 ## 5.5. ComfyUI Manager & Security levels
 
 [ComfyUI Manager](https://github.com/ltdrdata/ComfyUI-Manager/) is installed and available in the container.
@@ -745,6 +755,12 @@ To use the Blackwell GPU (RTX 5080/5090), you will need to make sure to install 
 
 On 20250424, PyTorch 2.7.0 was released with support for CUDA 12.8.
 
+With the 20250713 release, we are attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected, making the `PyTorch2.7-CUDA12.8.sh` script unnecessary.
+
+#### 5.7.2.1. PyTorch2.7-CUDA12.8.sh
+
+**20250713**: With the 20250713 release, we are attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected.
+
 The `postvenv_script.bash` feature was added because with the release of PyTorch 2.7.0, for the time being, when installing on a CUDA 12.8 base image, the PyTorch wheel used appears to be for CUDA 12.6, which is incompatible. 
 
 Until `cu128` is the default, a workaround script [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
@@ -798,18 +814,6 @@ pytorch version: 2.7.0+cu128
 
 Additional details on this can be found in [this issue](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/43).
 
-#### 5.7.2.1. Blackwell support on Unraid
-
-When using the `ubuntu24_cuda12.8-latest` image on Unraid, obtain a terminal from your Unraid WebUI and run the following commands:
-
-```bash
-cd /mnt/user/appdata/comfyui-nvidia/mnt
-wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7-CUDA12.8.sh -O ./postvenv_script.bash
-chown 99:100 ./postvenv_script.bash
-```
-
-Restart the container and it should install PyTorch 2.7.0 with CUDA 12.8 support.
-
 ### 5.7.3. Specifying alternate folder location (ex: --output_directory) with BASE_DIRECTORY
 
 The `BASE_DIRECTORY` environment variable can be used to specify an alternate folder location for `input`, `output`, `temp`, `user`, `models` and `custom_nodes`.
@@ -852,9 +856,9 @@ Those are temporary folders, and can be deleted when the container is stopped.
 
 ### 5.7.5. Direct Cloud deployment: GPU Trader
 
-[GPU Trader](https://www.gputrader.io/) is using the container as the base for their ComfyUI deployment, and their frist "One-Click Deployments" that provides "ComfyUI, a file browser, Jupyter Notebook, and a terminal providing persistent storage and full access to create AI imagery".
+[GPU Trader](https://www.gputrader.io/) is using the container as the base for their ComfyUI deployment, and their first "One-Click Deployments" that provides "ComfyUI, a file browser, Jupyter Notebook, and a terminal providing persistent storage and full access to create AI imagery".
 
-IF you are curious and want to learn more, check [this video](https://supercut.ai/share/gpu-trader/wb9biA0-r8H8dh1UKTL4k7).
+If you are curious and want to learn more, check [this video](https://supercut.ai/share/gpu-trader/wb9biA0-r8H8dh1UKTL4k7).
 
 
 # 6. Troubleshooting
@@ -934,6 +938,7 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
+- 20250713: Attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected when using the `PREINSTALL_TORCH` environment variable (enabled by default).
 - 20250607: Added `USE_PIPUPGRADE` and `USE_SOCAT` environment variables + added CUDA 12.9 build.
 - 20250503: Future proof [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) to use `torch>=2.7` instead of `torch==2.7.0` + added `run/pip_cache` and `run/tmp` folders support
 - 20250426: Added support for `postvenv_script.bash` script (run after the virtual environment is set but before ComfyUI is installed/updated -- with a direct application to Blackwell GPUs to install PyTorch 2.7.0 with CUDA 12.8 support). See [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) for details.
