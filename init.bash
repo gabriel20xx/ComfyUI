@@ -488,7 +488,7 @@ PREINSTALL_TORCH=${PREINSTALL_TORCH:-"true"}
 if [ "A${PREINSTALL_TORCH}" == "Atrue" ]; then
   echo ""; echo "== Pre-installing/Upgrading torch"
   if [ "$cuda_minor" -lt 8 ]; then
-    it="${PIP3_CMD} torch torchvision torchaudio"
+    it="${PIP3_CMD} torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"
   else
     it="${PIP3_CMD} torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128"
   fi
