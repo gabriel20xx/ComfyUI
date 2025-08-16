@@ -67,6 +67,14 @@ else
   echo "== Using default behavior: ComfyUI listens on ${LISTEN_ADDRESS}:${LISTEN_PORT}"
 fi
 
+DISABLE_UPGRADES=${DISABLE_UPGRADES:-"false"}
+if [ "A${DISABLE_UPGRADES}" == "Atrue" ]; then
+  echo "== Using alternate behavior: Disabling upgrade (including disabling USE_PIPUPGRADE)"
+  USE_PIPUPGRADE="false"
+else
+  echo "== Using default behavior: Enabling upgrades"
+fi
+
 USE_PIPUPGRADE=${USE_PIPUPGRADE:-"true"}
 if [ "A${USE_PIPUPGRADE}" == "Atrue" ]; then
   PIP3_CMD="pip3 install --upgrade --trusted-host pypi.org --trusted-host files.pythonhosted.org"
@@ -335,6 +343,10 @@ cd $it_dir # ${COMFYUSER_DIR}/mnt -- stay here for the following checks/setups
 if [ ! -d "ComfyUI" ]; then
   echo ""; echo "== Cloning ComfyUI"
   git clone https://github.com/comfyanonymous/ComfyUI.git ComfyUI || error_exit "ComfyUI clone failed"
+  if [ "$A{DISABLE_UPGRADES}" == "Atrue" ]; then
+    echo ""; echo "== This is a new installation, setting DISABLE_UPGRADES to false"
+    DISABLE_UPGRADES=false
+  fi
 fi
 
 ##
@@ -416,13 +428,15 @@ dir_validate "${it_dir}"
 it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to venv directory as the comfy user"
 
 ##
-echo ""; echo "== Activate the virtualenv and upgrade pip"
+echo ""; echo "== Activate the virtualenv"
 it="${it_dir}/bin/activate"
 if [ ! -f "$it" ]; then error_exit "virtualenv not created, please erase any venv directory"; fi
 echo ""; echo "  == Activating virtualenv"
 source "$it" || error_exit "Virtualenv activation failed"
-echo ""; echo "  == Upgrading pip"
-pip3 install --upgrade pip || error_exit "Pip upgrade failed"
+if [ "A${DISABLE_UPGRADES}" != "Atrue" ]; then
+  echo ""; echo "  == Upgrading pip"
+  pip3 install --upgrade pip || error_exit "Pip upgrade failed"
+fi
 
 # extent the PATH to include the user local bin directory
 export PATH=${COMFYUSER_DIR}/.local/bin:${PATH}
@@ -510,10 +524,16 @@ fi
 # Install ComfyUI's requirements
 cd ComfyUI
 it=requirements.txt
-echo ""; echo "== Installing/Updating from ComfyUI's requirements"
-${PIP3_CMD} -r $it || error_exit "ComfyUI requirements install/upgrade failed"
-echo ""; echo "== Installing Huggingface Hub"
-${PIP3_CMD} "huggingface_hub[cli]" || error_exit "HuggingFace Hub CLI install/upgrade failed"
+if [ "$A{DISABLE_UPGRADES}" != "Atrue" ]; then
+  echo ""; echo "== Installing/Updating from ComfyUI's requirements"
+  ${PIP3_CMD} -r $it || error_exit "ComfyUI requirements install/upgrade failed"
+fi
+
+# Install Huggingface Hub
+if [ "$A{DISABLE_UPGRADES}" != "Atrue" ]; then
+  echo ""; echo "== Installing Huggingface Hub"
+  ${PIP3_CMD} "huggingface_hub[cli]" || error_exit "HuggingFace Hub CLI install/upgrade failed"
+fi
 
 export COMFYUI_PATH=`pwd`
 echo ""; echo "-- COMFYUI_PATH: ${COMFYUI_PATH}"
@@ -528,8 +548,10 @@ if [ ! -d ComfyUI-Manager ]; then
   git clone https://github.com/ltdrdata/ComfyUI-Manager.git || error_exit "ComfyUI-Manager clone failed"
 fi
 if [ ! -d ComfyUI-Manager ]; then error_exit "ComfyUI-Manager not found"; fi
-echo "== Installing/Updating ComfyUI-Manager's requirements (from ${customnodes_dir}/ComfyUI-Manager/requirements.txt)"
-${PIP3_CMD} -r ${customnodes_dir}/ComfyUI-Manager/requirements.txt || error_exit "ComfyUI-Manager CLI requirements install/upgrade failed" 
+if [ "$A{DISABLE_UPGRADES}" != "Atrue" ]; then
+  echo "== Installing/Updating ComfyUI-Manager's requirements (from ${customnodes_dir}/ComfyUI-Manager/requirements.txt)"
+  ${PIP3_CMD} -r ${customnodes_dir}/ComfyUI-Manager/requirements.txt || error_exit "ComfyUI-Manager CLI requirements install/upgrade failed" 
+fi
 
 # Please see https://github.com/ltdrdata/ComfyUI-Manager?tab=readme-ov-file#security-policy for details on authorized values
 # recent releases of ComfyUI-Manager have a config.ini file in the user folder, if this is not present, we expect it in the default folder
