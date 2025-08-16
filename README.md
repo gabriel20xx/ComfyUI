@@ -140,7 +140,8 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.4.5. USE\_SOCAT](#545-use_socat)
     - [5.4.6. FORCE\_CHOWN](#546-force_chown)
     - [5.4.7. USE\_PIPUPGRADE](#547-use_pipupgrade)
-    - [5.4.8. PREINSTALL\_TORCH](#548-preinstall_torch)
+    - [5.4.8. DISABLE\_UPGRADES](#548-disable_upgrades)
+    - [5.4.9. PREINSTALL\_TORCH and PREINSTALL\_TORCH\_CMD](#549-preinstall_torch-and-preinstall_torch_cmd)
   - [5.5. ComfyUI Manager \& Security levels](#55-comfyui-manager--security-levels)
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
@@ -611,13 +612,21 @@ When set, it will "force chown" every sub-folder in the `run` and `basedir` fold
 
 ### 5.4.7. USE_PIPUPGRADE
 
-The `USE_PIPUPGRADE` environment variable is used to enable the use of `pip3 install --upgrade` to upgrade ComfyUI and other Python packages to the latest version during startup.
+The `USE_PIPUPGRADE` environment variable is used to enable the use of `pip3 install --upgrade` to upgrade ComfyUI and other Python packages to the latest version during startup. If not set, it will use `pip3 install` to install packages.
 
-This option is enabled by default as with the sepratation of the UI from the Core ComfyUI code, it is possible to be off-synced with the latest version of the UI.
+This option is enabled by default as with the sepraation of the UI from the Core ComfyUI code, it is possible to be off-synced with the latest version of the UI.
 
 It can be disabled by setting `USE_PIPUPGRADE=false`.
 
-### 5.4.8. PREINSTALL_TORCH
+### 5.4.8. DISABLE_UPGRADES
+
+The `DISABLE_UPGRADES` environment variable is used to disable upgrades when starting the container (also disables USE_PIPUPGRADE).
+
+This option is disabled by default (set to `false`) as it is recommended to keep the UI up to date.
+
+To enable its features, set `DISABLE_UPGRADES=true`. It is recommended to only use it on a fresh install of the container, as it will attempt to prevent Comfy and other Python packages from being upgraded outside of the WebUI.
+
+### 5.4.9. PREINSTALL_TORCH and PREINSTALL_TORCH_CMD
 
 The `PREINSTALL_TORCH` environment variable will attempt to automatically install/upgrade `torch` after the virtual environment is created.
 
@@ -626,6 +635,8 @@ It will also check the version of CUDA supported by the container such that for 
 This should prevent the need to use the `PyTorch2.7-CUDA12.8.sh` script.
 
 This option is enabled by default. It can be disabled by setting `PREINSTALL_TORCH=false`.
+
+The `PREINSTALL_TORCH_CMD` environment variable can be used to override the torch installation command with the one specified in the variable. For example for GTX 1080, try to use `PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"`. It is likely also recommended to not set `USE_PIPUPGRADE=false` in this case.
 
 ## 5.5. ComfyUI Manager & Security levels
 
