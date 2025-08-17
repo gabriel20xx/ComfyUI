@@ -25,6 +25,13 @@ When using RTX 50xx GPUs:
 - you must use NVIDIA driver 570 (or above).
 - use the `ubuntu24_cuda12.8` container tag (or above).
 
+When using GTX 10xx GPUs: 
+- use the `ubuntu24_cuda12.6.3` container tag.
+- set `PREINSTALL_TORCH=true` to enable the automatic installation of a CUDA 12.6 version of PyTorch.
+- (recommended) set `USE_PIPUPGRADE=false` to disable the use of `pip3 --upgrade`.
+- (optional) set `DISABLE_UPGRADES=true` to disable any Python package upgrade when starting the container (also disables `USE_PIPUPGRADE`). Use Comfy Manager to upgrade components.
+- (optional) set `PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"` to install torch with the `cu126` index-url.
+
 <h2>About "latest" tag</h2>
 
 `latest` now points to the `ubuntu24_cuda12.6.3` tag (as announced in the `20250320` release)
