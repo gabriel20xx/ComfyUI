@@ -29,6 +29,9 @@ export ENV_OBFUSCATE_PART="TOKEN API KEY"
 # default is true, value must set to "false" to disable
 #export USE_PIPUPGRADE="false"
 
+# Disable upgrades: set to "true" to disable upgrades (also disables USE_PIPUPGRADE)
+#export DISABLE_UPGRADES="true"
+
 # Base directory
 #export BASE_DIRECTORY="/basedir"
 
@@ -42,6 +45,8 @@ export ENV_OBFUSCATE_PART="TOKEN API KEY"
 
 # PREINSTALL_TORCH: preinstall torch: default is true, set to "false" to disable
 #export PREINSTALL_TORCH="false"
+# PREINSTALL_TORCH_CMD: when PREINSTALL_TORCH is set to true, will use the command specified in this variable to install torch
+#export PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"
 
 ## NVIDIA specific adds
 #export NVIDIA_VISIBLE_DEVICES=all

@@ -25,6 +25,13 @@ When using RTX 50xx GPUs:
 - you must use NVIDIA driver 570 (or above).
 - use the `ubuntu24_cuda12.8` container tag (or above).
 
+When using GTX 10xx GPUs: 
+- use the `ubuntu24_cuda12.6.3` container tag.
+- set `PREINSTALL_TORCH=true` to enable the automatic installation of a CUDA 12.6 version of PyTorch.
+- (recommended) set `USE_PIPUPGRADE=false` to disable the use of `pip3 --upgrade`.
+- (optional) set `DISABLE_UPGRADES=true` to disable any Python package upgrade when starting the container (also disables `USE_PIPUPGRADE`). Use Comfy Manager to upgrade components.
+- (optional) set `PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"` to install torch with the `cu126` index-url.
+
 <h2>About "latest" tag</h2>
 
 `latest` now points to the `ubuntu24_cuda12.6.3` tag (as announced in the `20250320` release)
@@ -85,6 +92,7 @@ If this version is incompatible with your container runtime, please see the list
 | ubuntu24_cuda12.6.3-latest | `latest` | `latest` as of `20250413` release |
 | ubuntu24_cuda12.8-latest | | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
 | ubuntu24_cuda12.9-latest | | |
+| ubutnu24_cuda13.0-latest | | Untested |
 
 For more details on driver capabilities and how to update those, please see [Setting up NVIDIA docker & podman (Ubuntu 24.04)](https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman).
 
@@ -140,7 +148,8 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.4.5. USE\_SOCAT](#545-use_socat)
     - [5.4.6. FORCE\_CHOWN](#546-force_chown)
     - [5.4.7. USE\_PIPUPGRADE](#547-use_pipupgrade)
-    - [5.4.8. PREINSTALL\_TORCH](#548-preinstall_torch)
+    - [5.4.8. DISABLE\_UPGRADES](#548-disable_upgrades)
+    - [5.4.9. PREINSTALL\_TORCH and PREINSTALL\_TORCH\_CMD](#549-preinstall_torch-and-preinstall_torch_cmd)
   - [5.5. ComfyUI Manager \& Security levels](#55-comfyui-manager--security-levels)
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
@@ -152,11 +161,12 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.7.4. run/pip\_cache and run/tmp](#574-runpip_cache-and-runtmp)
     - [5.7.5. Direct Cloud deployment: GPU Trader](#575-direct-cloud-deployment-gpu-trader)
 - [6. Troubleshooting](#6-troubleshooting)
-  - [6.1. Virtual environment](#61-virtual-environment)
-  - [6.2. run directory](#62-run-directory)
-  - [6.3. using BASE\_DIRECTORY with an outdated ComfyUI](#63-using-base_directory-with-an-outdated-comfyui)
-    - [6.3.1. using a specific ComfyUI version or SHA](#631-using-a-specific-comfyui-version-or-sha)
-    - [6.3.2. Errors with ComfyUI WebUI -- re-installation method with models migration](#632-errors-with-comfyui-webui----re-installation-method-with-models-migration)
+  - [6.1. Comfy crash](#61-comfy-crash)
+  - [6.2. Virtual environment](#62-virtual-environment)
+  - [6.3. run directory](#63-run-directory)
+  - [6.4. using BASE\_DIRECTORY with an outdated ComfyUI](#64-using-base_directory-with-an-outdated-comfyui)
+    - [6.4.1. using a specific ComfyUI version or SHA](#641-using-a-specific-comfyui-version-or-sha)
+    - [6.4.2. Errors with ComfyUI WebUI -- re-installation method with models migration](#642-errors-with-comfyui-webui----re-installation-method-with-models-migration)
 - [7. Changelog](#7-changelog)
 
 # 1. Preamble
@@ -611,21 +621,31 @@ When set, it will "force chown" every sub-folder in the `run` and `basedir` fold
 
 ### 5.4.7. USE_PIPUPGRADE
 
-The `USE_PIPUPGRADE` environment variable is used to enable the use of `pip3 install --upgrade` to upgrade ComfyUI and other Python packages to the latest version during startup.
+The `USE_PIPUPGRADE` environment variable is used to enable the use of `pip3 install --upgrade` to upgrade ComfyUI and other Python packages to the latest version during startup. If not set, it will use `pip3 install` to install packages.
 
-This option is enabled by default as with the sepratation of the UI from the Core ComfyUI code, it is possible to be off-synced with the latest version of the UI.
+This option is enabled by default as with the sepraation of the UI from the Core ComfyUI code, it is possible to be off-synced with the latest version of the UI.
 
 It can be disabled by setting `USE_PIPUPGRADE=false`.
 
-### 5.4.8. PREINSTALL_TORCH
+### 5.4.8. DISABLE_UPGRADES
+
+The `DISABLE_UPGRADES` environment variable is used to disable upgrades when starting the container (also disables USE_PIPUPGRADE).
+
+This option is disabled by default (set to `false`) as it is recommended to keep the UI up to date (since it was decoupled from the core code). To enable its features, set `DISABLE_UPGRADES=true`. 
+
+It is recommended to only use it on a fresh install of the container, as it will attempt to prevent Comfy and other Python packages from being upgraded outside of the WebUI. Any package update will have to be performed through the WebUI (ComfyUI Manager).
+
+### 5.4.9. PREINSTALL_TORCH and PREINSTALL_TORCH_CMD
 
 The `PREINSTALL_TORCH` environment variable will attempt to automatically install/upgrade `torch` after the virtual environment is created.
 
 It will also check the version of CUDA supported by the container such that for CUDA 12.8, it will install `torch` with the `cu128` index-url.
 
-This should prevent the need to use the `PyTorch2.7-CUDA12.8.sh` script.
-
 This option is enabled by default. It can be disabled by setting `PREINSTALL_TORCH=false`.
+
+The `PREINSTALL_TORCH_CMD` environment variable can be used to override the torch installation command with the one specified in the variable. For example for GTX 1080, try to use `PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"`. It is likely also recommended to not set `USE_PIPUPGRADE=false` in this case.
+
+Please note that the `PREINSTALL_TORCH_CMD` variable is not added to the Unraid template, and must be manually added if used.
 
 ## 5.5. ComfyUI Manager & Security levels
 
@@ -863,18 +883,25 @@ If you are curious and want to learn more, check [this video](https://supercut.a
 
 # 6. Troubleshooting
 
-## 6.1. Virtual environment
+## 6.1. Comfy crash
+
+It is possible that despite the container starting and setting itself up correctly, ComfyUI will crash.
+You will recognize this in the Docker log as `!! ERROR: ComfyUI failed or exited with an error`.
+The log might contain the reason for the crash, but you can also look up the ComfyUI logs in the container to get more details. Those are in `basedir/user/*.log`.
+If Comfy crashes after it succesfully performs its internal checks (starts (`Starting server`) it is likely a Comfy/custom node error and not related to the container itself.
+
+## 6.2. Virtual environment
 
 The `venv` in the "run" directory contains all the Python packages the tool requires.
 In case of an issue, it is recommended that you terminate the container, delete (or rename) the `venv` directory, and restart the container. 
 The virtual environment will be recreated; any `custom_scripts` should re-install their requirements; please see the "Fixing Failed Custom Nodes" section for additional details.
 
-## 6.2. run directory
+## 6.3. run directory
 
 It is also possible to rename the entire "run" directory to get a clean installation of ComfyUI and its virtual environment. This method is preferred, compared to deleting the "run" directory—as it will allow us to copy the content of the various downloaded `ComfyUI/models`, `ComfyUI/custom_nodes`, generated `ComfyUI/outputs`, `ComfyUI/user`, added `ComfyUI/inputs`, and other folders present within the old "run" directory.
 If using the `BASE_DIRECTORY` environment variable, please note that some of that `run` directory content will be moved to the `BASE_DIRECTORY` specified.
 
-## 6.3. using BASE_DIRECTORY with an outdated ComfyUI
+## 6.4. using BASE_DIRECTORY with an outdated ComfyUI
 
 If using the `BASE_DIRECTORY` option and the program exit saying the `--base-directory` option does not exist, this is due to an outdated ComfyUI installation. A possible solution is to disable the option, restart the container and use the ComfyUI-Manager to update ComfyUI. Another option is manually update the code: `cd run/ComfyUI; git pull`
 In some case, it is easier to create a simple `user_script.bash` to perform those steps; particularly on Unraid.
@@ -893,7 +920,7 @@ Make sure to change file ownership to the user with the `WANTED_UID` and `WANTED
 
 **After the process complete, you should be presented with the WebUI. Make to delete or rename the script to avoid upgrading ComfyUI at start time, and use ComfyUI Manager instead.**
 
-### 6.3.1. using a specific ComfyUI version or SHA
+### 6.4.1. using a specific ComfyUI version or SHA
 
 Following the conversation in https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/32
 Use a `user_script.bash` to install a specific version of ComfyUI
@@ -918,7 +945,7 @@ Make sure to change file ownership to the user with the `WANTED_UID` and `WANTED
 
 **After the process complete, you should be presented with the WebUI. Make sure to delete or rename the script to avoid it being run again.**
 
-### 6.3.2. Errors with ComfyUI WebUI -- re-installation method with models migration
+### 6.4.2. Errors with ComfyUI WebUI -- re-installation method with models migration
 
 Sometimes a `custom_nodes` might cause the WebUI to fail to start, or error out with a message (ex: `Loading aborted due to error reloading workflow data`). In such cases, it is recommended to start from a brand new `run` and `basedir` folders, since `run` contains ComfyUI and the `venv` (virtual environment) that is required to run the WebUI, and `basedir` contains the `models` and `custom_nodes`. Because we would prefer to not have to redownload the models, the following describes a method to do so, such that you will be able to copy the content of the `models` folder from a `_old ``run` and `basedir` folders to the new ones.
 
@@ -938,6 +965,7 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
+- 20250817: Added automatic PyTorch selection for `PREINSTALL_TORCH` environment variable based on CUDA version + added `DISABLE_UPGRADES` and `PREINSTALL_TORCH_CMD` environment variables.
 - 20250713: Attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected when using the `PREINSTALL_TORCH` environment variable (enabled by default).
 - 20250607: Added `USE_PIPUPGRADE` and `USE_SOCAT` environment variables + added CUDA 12.9 build.
 - 20250503: Future proof [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) to use `torch>=2.7` instead of `torch==2.7.0` + added `run/pip_cache` and `run/tmp` folders support
