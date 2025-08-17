@@ -965,6 +965,7 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
+- 20250817: Added automatic PyTorch selection for `PREINSTALL_TORCH` environment variable based on CUDA version + added `DISABLE_UPGRADES` and `PREINSTALL_TORCH_CMD` environment variables.
 - 20250713: Attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected when using the `PREINSTALL_TORCH` environment variable (enabled by default).
 - 20250607: Added `USE_PIPUPGRADE` and `USE_SOCAT` environment variables + added CUDA 12.9 build.
 - 20250503: Future proof [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) to use `torch>=2.7` instead of `torch==2.7.0` + added `run/pip_cache` and `run/tmp` folders support
