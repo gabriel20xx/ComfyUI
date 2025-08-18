@@ -494,7 +494,7 @@ If the file is not executable, the tool will attempt to make it executable, but 
 
 ### 5.3.3. /userscripts_dir
 
-🏗️ Please contribute to the `/userscripts_dir` if you have optimization scripts (such as SageAttention or other solutions that require software compilation) that you think would be useful to others or if you find an issue in the scripts provided. The preferred location os scripts to install python packages should be placed in the `user_script.bash` file.
+🏗️ Please contribute to the `/userscripts_dir` if you have optimization scripts (such as SageAttention or other solutions that require software compilation) that you think would be useful to others or if you find an issue in the scripts provided. The recommended location of scripts to install python packages is the `user_script.bash` file.
 
 ⚠️ **WARNING**: This directory is used to run independent user scripts to perform additional operations that might damage your installation. This was added at the request of users trying to install packages from source. **Use with caution**. No support will be provided for issues resulting from the use of this directory. In case of trouble, it is recommended to delete the `run` folder and start a new container.
 
