@@ -76,6 +76,7 @@ if [ -d $dd ]; then
 fi
 git clone https://github.com/triton-lang/triton.git
 cd triton
-pip3 install -e python || error_exit "Failed to install Triton"
+pip3 install -r python/requirements.txt || error_exit "Failed to install Triton's build-time dependencies."
+pip3 install -e . || error_exit "Failed to install Triton."
 
 exit 0
