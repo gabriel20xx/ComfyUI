@@ -92,7 +92,7 @@ If this version is incompatible with your container runtime, please see the list
 | ubuntu24_cuda12.6.3-latest | `latest` | `latest` as of `20250413` release |
 | ubuntu24_cuda12.8-latest | | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
 | ubuntu24_cuda12.9-latest | | |
-| ubutnu24_cuda13.0-latest | | Untested |
+| ubutnu24_cuda13.0-latest | | |
 
 For more details on driver capabilities and how to update those, please see [Setting up NVIDIA docker & podman (Ubuntu 24.04)](https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman).
 
@@ -348,8 +348,12 @@ After selecting the image to build from the `OS+CUDA` name within the `Dockerfil
 To build the `ubuntu24_cuda12.5.1` container, run:
 
 ```bash
-docker build --tag comfyui-nvidia-docker:ubuntu24_cuda12.5.1 -f Dockerfile/Dockerfile-ubuntu24_cuda12.5.1 .
+docker build --build-arg COMFYUI_NVIDIA_DOCKER_VERSION="20250817" --build-arg BUILD_BASE="ubuntu24_cuda12.5.1" --tag comfyui-nvidia-docker:ubuntu24_cuda12.5.1 -f Dockerfile/ubuntu24_cuda12.5.1.Dockerfile .
 ```
+
+The `COMFYUI_NVIDIA_DOCKER_VERSION` is the version of release (in doubt, use the latest release value).
+
+The `BUILD_BASE` must match the OS+CUDA version of the Dockerfile to build. It is used to create the virtual environment. For example, if the `Dockerfile` used is `Dockerfile-ubuntu24_cuda12.5.1`, the `BUILD_BASE` must be `ubuntu24_cuda12.5.1`.
 
 Upon completion of the build, we will have a newly created local  `comfyui-nvidia-docker:ubuntu24_cuda12.5.1` Docker image.
 
