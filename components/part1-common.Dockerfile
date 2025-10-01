@@ -34,6 +34,8 @@ RUN apt-get update -y --fix-missing \
     sudo \
     libglib2.0-0 \
     socat \
+    pkg-config \
+    libcairo2-dev \
   && apt-get clean
 
 # Add libEGL ICD loaders and libraries + Vulkan ICD loaders and libraries
