@@ -985,6 +985,7 @@ Once you are confident that you have migrated content from the old container's f
 
 # 7. Changelog
 
+- 20251001: Added additional libraries to the base image to support a few custom nodes + new userscripts_dir script for onnxruntime + added Tailscale Docker Compose usage.
 - 20250817: Added automatic PyTorch selection for `PREINSTALL_TORCH` environment variable based on CUDA version + added `DISABLE_UPGRADES` and `PREINSTALL_TORCH_CMD` environment variables.
 - 20250713: Attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected when using the `PREINSTALL_TORCH` environment variable (enabled by default).
 - 20250607: Added `USE_PIPUPGRADE` and `USE_SOCAT` environment variables + added CUDA 12.9 build.

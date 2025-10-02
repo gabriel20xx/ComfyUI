@@ -1,5 +1,5 @@
-FROM nvidia/cuda:13.0.0-cudnn-devel-ubuntu24.04
-ARG BASE_DOCKER_FROM=nvidia/cuda:13.0.0-cudnn-devel-ubuntu24.04
+FROM nvidia/cuda:13.0.1-cudnn-devel-ubuntu24.04
+ARG BASE_DOCKER_FROM=nvidia/cuda:13.0.1-cudnn-devel-ubuntu24.04
 ##### Base
 
 # Install system packages
@@ -36,6 +36,15 @@ RUN apt-get update -y --fix-missing \
     sudo \
     libglib2.0-0 \
     socat \
+    pkg-config \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libffi-dev \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
   && apt-get clean
 
 # Add libEGL ICD loaders and libraries + Vulkan ICD loaders and libraries

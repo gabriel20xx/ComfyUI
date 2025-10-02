@@ -37,6 +37,15 @@ RUN apt-get update -y --fix-missing \
     sudo \
     libglib2.0-0 \
     socat \
+    pkg-config \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libpng-dev \
+    libffi-dev \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
   && apt-get clean
 
 # Add libEGL ICD loaders and libraries + Vulkan ICD loaders and libraries
