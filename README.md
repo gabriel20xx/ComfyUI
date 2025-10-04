@@ -29,7 +29,7 @@ When using GTX 10xx GPUs:
 - use the `ubuntu24_cuda12.6.3` container tag.
 - set `PREINSTALL_TORCH=true` to enable the automatic installation of a CUDA 12.6 version of PyTorch.
 - (recommended) set `USE_PIPUPGRADE=false` to disable the use of `pip3 --upgrade`.
-- (optional) set `DISABLE_UPGRADES=true` to disable any Python package upgrade when starting the container (also disables `USE_PIPUPGRADE`). Use Comfy Manager to upgrade components.
+- (optional) **after the initial installation only**, set `DISABLE_UPGRADES=true` to disable any Python package upgrade when starting the container (also disables `USE_PIPUPGRADE`, and `PREINSTALL_TORCH` so set only after the initial installation). Use Comfy Manager to upgrade components.
 - (optional) set `PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"` to install torch with the `cu126` index-url.
 
 <h2>About "latest" tag</h2>
@@ -636,11 +636,11 @@ It can be disabled by setting `USE_PIPUPGRADE=false`.
 
 ### 5.4.8. DISABLE_UPGRADES
 
-The `DISABLE_UPGRADES` environment variable is used to disable upgrades when starting the container (also disables USE_PIPUPGRADE).
+The `DISABLE_UPGRADES` environment variable is used to disable upgrades when starting the container (also disables `USE_PIPUPGRADE` and `PREINSTALL_TORCH`).
 
 This option is disabled by default (set to `false`) as it is recommended to keep the UI up to date (since it was decoupled from the core code). To enable its features, set `DISABLE_UPGRADES=true`. 
 
-It is recommended to only use it on a fresh install of the container, as it will attempt to prevent Comfy and other Python packages from being upgraded outside of the WebUI. Any package update will have to be performed through the WebUI (ComfyUI Manager).
+It is recommended to only use it on an installation after its initial setup (especially if you plan to use `PREINSTALL_TORCH`: it will bypass this step as well), as it will attempt to prevent Comfy and other Python packages from being upgraded outside of the WebUI. Any package update will have to be performed through the WebUI (ComfyUI Manager).
 
 ### 5.4.9. PREINSTALL_TORCH and PREINSTALL_TORCH_CMD
 
