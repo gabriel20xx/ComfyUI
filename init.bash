@@ -55,30 +55,18 @@ if [ ! -d $itdir ]; then mkdir $itdir; chmod 777 $itdir; fi
 if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
 # Set user and group id
-it=$itdir/comfy_user_uid
-if [ -f $it ]; then WANTED_UID=$(cat $it); fi
 WANTED_UID=${WANTED_UID:-1024}
-if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_UID"; fi
 echo "-- WANTED_UID: \"${WANTED_UID}\""
 
-it=$itdir/comfy_user_gid
-if [ -f $it ]; then WANTED_GID=$(cat $it); fi
 WANTED_GID=${WANTED_GID:-1024}
-if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_GID"; fi
 echo "-- WANTED_GID: \"${WANTED_GID}\""
 
 # Set security level
-it=$itdir/comfy_security_level
-if [ -f $it ]; then SECURITY_LEVEL=$(cat $it); fi
 SECURITY_LEVEL=${SECURITY_LEVEL:-"normal"}
-if [ ! -f $it ]; then write_worldtmpfile $it "$SECURITY_LEVEL"; fi
 echo "-- SECURITY_LEVEL: \"${SECURITY_LEVEL}\""
 
 # Set base directory (if not used, set to $ignore_value)
-it=$itdir/comfy_base_directory
-if [ -f $it ]; then BASE_DIRECTORY=$(cat $it); fi
 BASE_DIRECTORY=${BASE_DIRECTORY:-"$ignore_value"}
-if [ ! -f $it ]; then write_worldtmpfile $it "$BASE_DIRECTORY"; fi
 echo "-- BASE_DIRECTORY: \"${BASE_DIRECTORY}\""
 
 # Validate base directory
