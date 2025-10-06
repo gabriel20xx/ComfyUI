@@ -55,18 +55,38 @@ if [ ! -d $itdir ]; then mkdir $itdir; chmod 777 $itdir; fi
 if [ ! -d $itdir ]; then error_exit "Failed to create $itdir"; fi
 
 # Set user and group id
+it=$itdir/comfy_user_uid
+if [ -z "${WANTED_UID+x}" ]; then
+  if [ -f $it ]; then WANTED_UID=$(cat $it); fi
+fi
 WANTED_UID=${WANTED_UID:-1024}
+if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_UID"; fi
 echo "-- WANTED_UID: \"${WANTED_UID}\""
 
+it=$itdir/comfy_user_gid
+if [ -z "${WANTED_GID+x}" ]; then
+  if [ -f $it ]; then WANTED_GID=$(cat $it); fi
+fi
 WANTED_GID=${WANTED_GID:-1024}
+if [ ! -f $it ]; then write_worldtmpfile $it "$WANTED_GID"; fi
 echo "-- WANTED_GID: \"${WANTED_GID}\""
 
 # Set security level
+it=$itdir/comfy_security_level
+if [ -z "${SECURITY_LEVEL+x}" ]; then
+  if [ -f $it ]; then SECURITY_LEVEL=$(cat $it); fi
+fi
 SECURITY_LEVEL=${SECURITY_LEVEL:-"normal"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$SECURITY_LEVEL"; fi
 echo "-- SECURITY_LEVEL: \"${SECURITY_LEVEL}\""
 
 # Set base directory (if not used, set to $ignore_value)
+it=$itdir/comfy_base_directory
+if [ -z "${BASE_DIRECTORY+x}" ]; then
+  if [ -f $it ]; then BASE_DIRECTORY=$(cat $it); fi
+fi
 BASE_DIRECTORY=${BASE_DIRECTORY:-"$ignore_value"}
+if [ ! -f $it ]; then write_worldtmpfile $it "$BASE_DIRECTORY"; fi
 echo "-- BASE_DIRECTORY: \"${BASE_DIRECTORY}\""
 
 # Validate base directory
@@ -164,7 +184,7 @@ if [ "A${whoami}" == "Acomfytoo" ]; then
   echo "-- Running as comfytoo, will switch comfy to the desired UID/GID"
   # The script is started as comfytoo -- UID/GID 1025/1025
 
-FORCE_CHOWN=${FORCE_CHOWN:-"false"} # any value works, empty value or false means disabled
+  FORCE_CHOWN=${FORCE_CHOWN:-"false"} # any value works, empty value or false means disabled
   if [ "A${FORCE_CHOWN}" != "Afalse" ]; then
     echo "-- Force chown mode enabled, will force change directory ownership as comfy user during script rerun (might be slow)"
     sudo touch /etc/comfy_force_chown
