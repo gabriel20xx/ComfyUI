@@ -593,7 +593,7 @@ if [ "A${DISABLE_UPGRADES}" == "Atrue" ]; then
   echo "== Huggingface Hub upgrade disabled by DISABLE_UPGRADES"
 else
   echo ""; echo "== Installing Huggingface Hub"
-  ${PIP3_CMD} "huggingface_hub[cli]" || error_exit "HuggingFace Hub CLI install/upgrade failed"
+  ${PIP3_CMD} "huggingface_hub" || error_exit "HuggingFace Hub install/upgrade failed"
 fi
 
 export COMFYUI_PATH=`pwd`
