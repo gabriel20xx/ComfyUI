@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# Install nunchaku
-# compile from source (if src/${BUILD_BASE}/nunchaku is NOT already present)
-#
 # https://github.com/nunchaku-tech/nunchaku
+nunchaku_version="v1.0.2"
 
 set -e
 
@@ -15,6 +13,12 @@ error_exit() {
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+# We need both uv and the cache directory to enable build with uv
+use_uv=true
+uv="/comfy/mnt/venv/bin/uv"
+uv_cache="/comfy/mnt/uv_cache"
+if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
 
 ## requires: 00-nvidiaDev,sh
 echo "Checking if nvcc is available"
@@ -34,11 +38,11 @@ else
   error_exit " !! ninja not installed, canceling run"
 fi
 
+# Decide on build location
 cd /comfy/mnt
 bb="venv/.build_base.txt"
 if [ ! -f $bb ]; then error_exit "${bb} not found"; fi
 BUILD_BASE=$(cat $bb)
-
 
 if [ ! -d src ]; then mkdir src; fi
 cd src
@@ -47,7 +51,7 @@ mkdir -p ${BUILD_BASE}
 if [ ! -d ${BUILD_BASE} ]; then error_exit "${BUILD_BASE} not found"; fi
 cd ${BUILD_BASE}
 
-dd="/comfy/mnt/src/${BUILD_BASE}/nunchaku"
+dd="/comfy/mnt/src/${BUILD_BASE}/nunchaku-${nunchaku_version}"
 if [ -d $dd ]; then
   echo "Nunchaku source already present, you must delete it at $dd to force reinstallation"
   exit 0
@@ -55,9 +59,33 @@ fi
 
 echo "Compiling Nunchaku"
 
-git clone --recurse-submodules https://github.com/nunchaku-tech/nunchaku.git
-cd nunchaku
-NUMPROC=$(nproc --all)
-EXT_PARALLEL=4 NVCC_APPEND_FLAGS="--threads 8" MAX_JOBS=$NUMPROC pip3 install -e ".[dev,docs]" || error_exit "Failed to install Nunchaku"
+## Clone Nunchaku
+git clone \
+  --branch $nunchaku_version \
+  --recurse-submodules \
+  https://github.com/nunchaku-tech/nunchaku.git \
+  $dd
+
+# Compile Nunchaku
+# Heavy compilation parallelization: lower the number manually if needed
+cd $dd
+numproc=$(nproc --all)
+echo " - numproc: $numproc"
+ext_parallel=$(( numproc / 2 ))
+if [ "$ext_parallel" -lt 1 ]; then ext_parallel=1; fi
+echo " - ext_parallel: $ext_parallel"
+num_threads=$(( numproc / 2 ))
+if [ "$num_threads" -lt 1 ]; then num_threads=1; fi
+echo " - num_threads: $num_threads"
+
+if [ "A$use_uv" == "Atrue" ]; then
+  echo "== Using uv"
+  echo " - uv: $uv"
+  echo " - uv_cache: $uv_cache"
+  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc uv pip install -e ".[dev,docs]" || error_exit "Failed to install Nunchaku"
+else
+  echo "== Using pip"
+  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc pip3 install -e ".[dev,docs]" || error_exit "Failed to install Nunchaku"
+fi
 
 exit 0

@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Install SageAttention
-# compile from source (if src/${BUILD_BASE}/SageAttention is NOT already present)
-#
 # https://github.com/thu-ml/SageAttention
-
-min_sageattention_version="2.2.0"
+sageattention_version="v2.2.0"
 
 set -e
 
@@ -17,6 +13,12 @@ error_exit() {
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+# We need both uv and the cache directory to enable build with uv
+use_uv=true
+uv="/comfy/mnt/venv/bin/uv"
+uv_cache="/comfy/mnt/uv_cache"
+if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
 
 ## requires: 00-nvidiaDev,sh
 echo "Checking if nvcc is available"
@@ -36,35 +38,11 @@ else
   error_exit " !! ninja not installed, canceling run"
 fi
 
-# Adapted from https://github.com/eddiehavila/ComfyUI-Nvidia-Docker/blob/main/user_script.bash
-compile_flag=true
-if pip3 show sageattention &>/dev/null; then
-  # Extract the installed version of sageattention
-  sageattention_version=$(pip3 show sageattention | grep '^Version:' | awk '{print $2}')
-  echo "SageAttention is installed with version $sageattention_version"
-
-  # Use version sort to check if sageattention_version is below the minimal version
-  # This command prints the lowest version of the two.
-  # If the lowest isn't the minimal version, then sageattention_version is below the minimal version.
-  if [ "$(printf '%s\n' "$sageattention_version" "$min_sageattention_version" | sort -V | head -n1)" != "$min_sageattention_version" ]; then
-    echo "SageAttention version $sageattention_version is below minimum version $min_sageattention_version, need to compile"
-  else
-    compile_flag=false
-  fi
-fi
-
-if [ "A$compile_flag" = "Afalse" ]; then
-  echo "SageAttention is already up to date (version $sageattention_version), skipping compilation"
-  exit 0
-fi
-
-echo "Compiling SageAttention"
-
+# Decide on build location
 cd /comfy/mnt
 bb="venv/.build_base.txt"
 if [ ! -f $bb ]; then error_exit "${bb} not found"; fi
 BUILD_BASE=$(cat $bb)
-
 
 if [ ! -d src ]; then mkdir src; fi
 cd src
@@ -73,15 +51,40 @@ mkdir -p ${BUILD_BASE}
 if [ ! -d ${BUILD_BASE} ]; then error_exit "${BUILD_BASE} not found"; fi
 cd ${BUILD_BASE}
 
-dd="/comfy/mnt/src/${BUILD_BASE}/SageAttention"
+dd="/comfy/mnt/src/${BUILD_BASE}/SageAttention-${sageattention_version}"
 if [ -d $dd ]; then
   echo "SageAttention source already present, you must delete it at $dd to force reinstallation"
   exit 0
 fi
 
-git clone https://github.com/thu-ml/SageAttention.git
-cd SageAttention
-NUMPROC=$(nproc --all)
-EXT_PARALLEL=4 NVCC_APPEND_FLAGS="--threads 8" MAX_JOBS=$NUMPROC python3 setup.py install || error_exit "Failed to install SageAttention"
+echo "Compiling SageAttention"
+
+## Clone SageAttention
+git clone \
+  --branch $sageattention_version \
+  --recurse-submodules https://github.com/thu-ml/SageAttention.git \
+  $dd
+
+## Compile SageAttention
+# Heavy compilation parallelization: lower the number manually if needed
+cd $dd
+numproc=$(nproc --all)
+echo " - numproc: $numproc"
+ext_parallel=$(( numproc / 2 ))
+if [ "$ext_parallel" -lt 1 ]; then ext_parallel=1; fi
+echo " - ext_parallel: $ext_parallel"
+num_threads=$(( numproc / 2 ))
+if [ "$num_threads" -lt 1 ]; then num_threads=1; fi
+echo " - num_threads: $num_threads"
+
+if [ "A$use_uv" == "Atrue" ]; then
+  echo "== Using uv"
+  echo " - uv: $uv"
+  echo " - uv_cache: $uv_cache"
+  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc uv run --active python3 setup.py install || error_exit "Failed to install SageAttention"
+else
+  echo "== Using pip"
+  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc python3 setup.py install || error_exit "Failed to install SageAttention"
+fi
 
 exit 0

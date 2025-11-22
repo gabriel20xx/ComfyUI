@@ -16,6 +16,20 @@ error_exit() {
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
 
-pip3 install onnxruntime-gpu || error_exit "Failed to install onnxruntime-gpu"
+# We need both uv and the cache directory to enable build with uv
+use_uv=true
+uv="/comfy/mnt/venv/bin/uv"
+uv_cache="/comfy/mnt/uv_cache"
+if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
+
+if [ "A$use_uv" == "Atrue" ]; then
+  echo "== Using uv"
+  echo " - uv: $uv"
+  echo " - uv_cache: $uv_cache"
+  uv pip install onnxruntime-gpu || error_exit "Failed to uv install build dependencies"
+else
+  echo "== Using pip"
+  pip3 install onnxruntime-gpu || error_exit "Failed to install build dependencies"
+fi
 
 exit 0
