@@ -12,21 +12,32 @@ services:
 #    extra_hosts:
 #      - ollama.internal:10.12.13.14 # method to add extra hosts to the container for external services (useful for Ollama's node: use http://ollama.internal:11434)
     environment:
-      - USE_UV=true # Use "uv pip" instead of "pip" (Default: false)
+      # Use "uv pip" instead of "pip" (Default: false)
+      - USE_UV=true
       # set WANTED_UID and WANTED_GID to your user and group as obtained with `id -u` and `id -g`
       - WANTED_UID=1000
       - WANTED_GID=1000
+      # enable BASE_DIRECTORY and sets it to use the mount point to your basedir
       - BASE_DIRECTORY=/basedir
+      # set SECURITY_LEVEL to normal (Default: normal)
       - SECURITY_LEVEL=normal
+      # NVIDIA GPU recommended parameters
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-#      - COMFY_CMDLINE_EXTRA=--disable-api-nodes --fast fp16_accumulation --normalvram --reserve-vram 1 --fp16-vae --cuda-malloc # Arguments to pass to ComfyUI
-#      - USE_SOCAT=false # Have ComfyUI listen on 127.0.0.1:8181 and use socat to expose the service on 0.0.0.0:8188 (Default: false)
-#      - FORCE_CHOWN=false # Force change directory ownership as the comfy user during script startup (Default: false)
-#      - USE_PIPUPGRADE=true # Upgrade ComfyUI and other Python packages to the latest version during startup (Default: true)
-#      - DISABLE_UPGRADES=false # Disable upgrades when starting the container (also disables USE_PIPUPGRADE) (Default: false)
-#      - PREINSTALL_TORCH=true # Automatically install/upgrade torch. (Default: true)
-#      - LD_LIBRARY_PATH=/usr/lib/wsl/lib # Required for Windows Subsystem for Linux 2
+      # Arguments to pass to ComfyUI
+#      - COMFY_CMDLINE_EXTRA=--disable-api-nodes --fast fp16_accumulation --normalvram --reserve-vram 1 --fp16-vae --cuda-malloc 
+# Have ComfyUI listen on 127.0.0.1:8181 and use socat to expose the service on 0.0.0.0:8188 (Default: false)
+#      - USE_SOCAT=false 
+# Force change directory ownership as the comfy user during script startup (Default: false)
+#      - FORCE_CHOWN=false 
+# Upgrade ComfyUI and other Python packages to the latest version during startup (Default: true)
+#      - USE_PIPUPGRADE=true 
+# Disable upgrades when starting the container (also disables USE_PIPUPGRADE) (Default: false)
+#      - DISABLE_UPGRADES=false 
+# Automatically install/upgrade torch. (Default: true)
+#      - PREINSTALL_TORCH=true 
+# Required for Windows Subsystem for Linux 2
+#      - LD_LIBRARY_PATH=/usr/lib/wsl/lib 
 # Add extra environment variables if needed
 #      - HF_TOKEN=hf_... # set your huggingface token to avoid rate limiting
     deploy:
