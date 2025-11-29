@@ -541,11 +541,49 @@ run_userscript() {
   echo ""
 }
 
+# Pre-install dev packages (used to be 10-pip3Dev.sh)
+${PIP3_CMD} setuptools || error_exit "Failed to install setuptools"
+${PIP3_CMD} ninja || error_exit "Failed to install ninja"
+${PIP3_CMD} cmake || error_exit "Failed to install cmake"
+${PIP3_CMD} wheel || error_exit "Failed to install wheel"
+${PIP3_CMD} pybind11 || error_exit "Failed to install pybind11"
+${PIP3_CMD} packaging || error_exit "Failed to install packaging"
 
 # Check for the post-venv script
 it=${COMFYUSER_DIR}/mnt/postvenv_script.bash
 echo ""; echo "== Checking for post-venv script: ${it}"
 run_userscript $it "chmod"
+
+# Prep UV_TORCH_BACKEND and TORCH_INDEX_URL
+torch_version="torch torchvision torchaudio"
+# Determine CUDA backend based on version
+if [ "$cuda_major" -lt 13 ]; then
+  if [ "$cuda_minor" -lt 6 ]; then # CUDA 12.4
+    echo "== Will be installing torch for CUDA 12.4, disabling upgrade for pip3 if enabled to avoid overwriting torch"
+    PIP3_CMD="${DEFAULT_PIP3_CMD}"
+    echo "== updated PIP3_CMD: \"${PIP3_CMD}\""
+    cuda_backend="cu124"
+    torch_version="torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0"
+  elif [ "$cuda_minor" -lt 8 ]; then # CUDA 12.6
+    cuda_backend="cu126"
+  elif [ "$cuda_minor" -lt 9 ]; then # CUDA 12.8
+    cuda_backend="cu128"
+  else # CUDA 12.9
+    cuda_backend="cu129"
+  fi
+else # CUDA 13.0
+  cuda_backend="cu130"
+fi
+# check that cuda_backend is set
+if [ -z "${cuda_backend}" ]; then error_exit "cuda_backend is not set"; fi
+
+# Apply backend to either UV or pip
+if [ "A${USE_UV}" == "Atrue" ]; then
+  export UV_TORCH_BACKEND="${cuda_backend}"
+else
+  export TORCH_INDEX_URL="https://download.pytorch.org/whl/${cuda_backend}"
+fi
+# We are exporting UV_TORCH_BACKEND and TORCH_INDEX_URL to make it available to the userscripts
 
 # Pre-install/upgrade Torch (default is true, unless DISABLE_UPGRADES is set to true)
 if [ "A${DISABLE_UPGRADES}" == "Atrue" ]; then
@@ -560,35 +598,15 @@ else
       # fix: recommendation was to use "pip3 install ..." must remove "pip3 install" from the command
       it=${it//pip3 install/}
     else
-      torch_version="torch torchvision torchaudio"
-      # Determine CUDA backend based on version
-      if [ "$cuda_major" -lt 13 ]; then
-        if [ "$cuda_minor" -lt 6 ]; then # CUDA 12.4
-          echo "== Will be installing torch for CUDA 12.4, disabling upgrade for pip3 if enabled to avoid overwriting torch"
-          PIP3_CMD="${DEFAULT_PIP3_CMD}"
-          echo "== updated PIP3_CMD: \"${PIP3_CMD}\""
-          cuda_backend="cu124"
-          torch_version="torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0"
-        elif [ "$cuda_minor" -lt 8 ]; then # CUDA 12.6
-          cuda_backend="cu126"
-        else # CUDA 12.8
-          cuda_backend="cu128"
-        fi
-      else # CUDA 13.0+
-        cuda_backend="cu130"
-      fi
-
-      # Apply backend to either UV or pip
       if [ "A${USE_UV}" == "Atrue" ]; then
-        export UV_TORCH_BACKEND="${cuda_backend}"
+        if [ ! ${UV_TORCH_BACKEND+x} ]; then error_exit "UV_TORCH_BACKEND is not set"; fi
+        echo "== Installing torch using uv with backend: ${UV_TORCH_BACKEND}"
         it="${torch_version}"
       else
-        it="${torch_version} --index-url https://download.pytorch.org/whl/${cuda_backend}"
+        if [ ! ${TORCH_INDEX_URL+x} ]; then error_exit "TORCH_INDEX_URL is not set"; fi
+        echo "== Installing torch using pip with index url: ${TORCH_INDEX_URL}"
+        it="${torch_version} --index-url ${TORCH_INDEX_URL}"
       fi
-
-    if [ "A${USE_UV}" == "Atrue" ]; then
-      if [ ! ${UV_TORCH_BACKEND+x} ]; then error_exit "UV_TORCH_BACKEND is not set"; fi
-      echo "== Installing torch using uv with backend: ${UV_TORCH_BACKEND}"
     fi
 
     echo "Installing: ${it}"
