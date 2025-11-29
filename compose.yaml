@@ -26,7 +26,7 @@ services:
 #      - DISABLE_UPGRADES=false # Disable upgrades when starting the container (also disables USE_PIPUPGRADE) (Default: false)
 #      - PREINSTALL_TORCH=true # Automatically install/upgrade torch. (Default: true)
 #      - LD_LIBRARY_PATH=/usr/lib/wsl/lib # Required for Windows Subsystem for Linux 2
-#      - USE_UV=true # Use "uv pip" instead of "pip" (Default: false)
+      - USE_UV=true # Use "uv pip" instead of "pip" (Default: false)
 # Add extra environment variables if needed
 #      - HF_TOKEN=hf_... # set your huggingface token to avoid rate limiting
     deploy:

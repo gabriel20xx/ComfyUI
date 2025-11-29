@@ -19,11 +19,16 @@
   - including [Unraid](https://unraid.net) compatible images
 - open-source: build it yourself using the corresponding `Dockerfile` present in the directory of the same name and review the `init.bash` (i.e. the setup logic)
 
+<h2>USE_UV</h2>
+
+**Although `USE_UV` is not enabled by default, it is recommended to use `uv`** instead of `pip` for faster and more reliable installations. The logic to set the proper `UV_TORCH_BACKEND` is already implemented in the main script, so in general, users should not have to set `PREINSTALL_TORCH_CMD`.
+
 <h2>GPU specific note</h2>
 
 When using Blackwell (RTX50xx) GPUs: 
 - you must use NVIDIA driver 570 (or above).
 - use the `ubuntu24_cuda12.8` container tag (or above).
+- (recommended) set `USE_UV=true` to enable the use of `uv` instead of `pip`. You should not need to use the `PREINSTALL_TORCH_CMD` parameter.
 
 When using GTX 10xx GPUs: 
 - use the `ubuntu24_cuda12.6.3` container tag.
@@ -31,6 +36,8 @@ When using GTX 10xx GPUs:
 - (recommended) set `USE_PIPUPGRADE=false` to disable the use of `pip3 --upgrade`.
 - (optional) **after the initial installation only**, set `DISABLE_UPGRADES=true` to disable any Python package upgrade when starting the container (also disables `USE_PIPUPGRADE`, and `PREINSTALL_TORCH` so set only after the initial installation). Use Comfy Manager to upgrade components.
 - (optional) set `PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"` to install torch with the `cu126` index-url.
+
+**Note:** If you use a GTX 10xx GPU, please let me know if `USE_UV=true` works for you without using any of the _(optional)_ parameters.
 
 <h2>About "latest" tag</h2>
 
@@ -58,11 +65,23 @@ mkdir run basedir
 
 
 # Using docker
-docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia mmartial/comfyui-nvidia-docker:latest
+docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -e USE_UV=true -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia mmartial/comfyui-nvidia-docker:latest
 
 # Using podman
-podman run --rm -it --userns=keep-id --device nvidia.com/gpu=all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia docker.io/mmartial/comfyui-nvidia-docker:latest
+podman run --rm -it --userns=keep-id --device nvidia.com/gpu=all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -e USE_UV=true -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia docker.io/mmartial/comfyui-nvidia-docker:latest
 ```
+
+<h2>Smart ComfyUI Gallery</h2>
+
+For users that are looking for a tool to check their generations, check out [Smart Gallery for ComfyUI](https://github.com/biagiomaf/smart-comfyui-gallery). 
+
+> A fast, beautiful, and mobile-friendly gallery to organize and manage all files generated with ComfyUI, including images and videos in any format. Features full management tools, Workflow Download, Node Summary, and support for nested folders. Works standalone, even when ComfyUI is not running.
+
+I have added similar `WANTED_UID` and `WANTED_GID` environment variables to the Smart Gallery for ComfyUI container (and a few other options [PRs 12, 19-21]), so both integrate well with each other.
+
+A pre-built container image and an Unraid version are available.
+
+Check out the [Smart Gallery for ComfyUI](https://github.com/biagiomaf/smart-comfyui-gallery) repository for more details.
 
 <hr>
 
@@ -145,11 +164,11 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.3.3. /userscripts\_dir](#533-userscripts_dir)
     - [5.3.4. /comfyui-nvidia\_config.sh](#534-comfyui-nvidia_configsh)
   - [5.4. Available environment variables](#54-available-environment-variables)
-    - [5.4.1. WANTED\_UID and WANTED\_GID](#541-wanted_uid-and-wanted_gid)
-    - [5.4.2. COMFY\_CMDLINE\_BASE and COMFY\_CMDLINE\_EXTRA](#542-comfy_cmdline_base-and-comfy_cmdline_extra)
-    - [5.4.3. BASE\_DIRECTORY](#543-base_directory)
-    - [5.4.4. SECURITY\_LEVEL](#544-security_level)
-    - [5.4.5. USE\_UV](#545-use_uv)
+    - [5.4.1. USE\_UV](#541-use_uv)
+    - [5.4.2. WANTED\_UID and WANTED\_GID](#542-wanted_uid-and-wanted_gid)
+    - [5.4.3. COMFY\_CMDLINE\_BASE and COMFY\_CMDLINE\_EXTRA](#543-comfy_cmdline_base-and-comfy_cmdline_extra)
+    - [5.4.4. BASE\_DIRECTORY](#544-base_directory)
+    - [5.4.5. SECURITY\_LEVEL](#545-security_level)
     - [5.4.6. USE\_SOCAT](#546-use_socat)
     - [5.4.7. FORCE\_CHOWN](#547-force_chown)
     - [5.4.8. USE\_PIPUPGRADE](#548-use_pipupgrade)
@@ -250,7 +269,7 @@ To run the container on an NVIDIA GPU, mount the specified directory, expose onl
 
 ```bash
 mkdir run basedir
-docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia mmartial/comfyui-nvidia-docker:latest
+docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -e USE_UV=true -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia mmartial/comfyui-nvidia-docker:latest
 ```
 
 ### 2.1.2. docker compose up
@@ -565,7 +584,19 @@ Note: the file is loaded AFTER the environment variables set on the command line
 
 ## 5.4. Available environment variables
 
-### 5.4.1. WANTED_UID and WANTED_GID
+### 5.4.1. USE_UV
+
+The `USE_UV` environment variable is used to enable the use of `uv` instead of `pip`.
+
+[`uv`](https://docs.astral.sh/uv/) is a fast, all-in-one Python package & project manager written in Rust. It aims to replace a whole stack of python tools with a single binary that is faster than pip in many cases.
+
+`uv` is also supported by ComfyUI Manager natively when the `use_uv` option is set to `true` in the `basedir/user/default/ComfyUI-Manager/config.ini` file. 
+We will attempt to set it to the value of the `USE_UV` environment variable. Similar to `SECURITY_LEVEL`, it will be required to `Restart` ComfyUI to apply the change.
+
+It is currently not set to `true` by default.
+It is recommended to set `USE_UV=true` as it make the container start faster and allow for a simpler nodes installation process.
+
+### 5.4.2. WANTED_UID and WANTED_GID
 
 The `WANTED_UID` and `WANTED_GID` environment variables will be used to set the `comfy` user within the container.
 It is recommended that those be set to the end-user's `uid` and `gid` to allow the addition of files, models, and other content within the `run` directory.
@@ -575,7 +606,7 @@ The running user's `uid` and `gid` can be obtained using `id -u` and `id -g` in 
 
 **Note:** It is not recommended to override the default starting user of the script (`comfytoo`), as it is used to set up the `comfy` user to run with the provided `WANTED_UID` and `WANTED_GID`. The script checks for the `comfytoo` user to do so, then after restarting as the `comfy` user, the script checks that the `comfy` user has the correct `uid` and `gid` and will fail if it has not been able to set it up.
 
-### 5.4.2. COMFY_CMDLINE_BASE and COMFY_CMDLINE_EXTRA
+### 5.4.3. COMFY_CMDLINE_BASE and COMFY_CMDLINE_EXTRA
 
 You can add extra parameters by adding ComfyUI-compatible command-line arguments to the `COMFY_CMDLINE_EXTRA` environment variable.
 For example: `docker run [...] -e COMFY_CMDLINE_EXTRA="--fast --reserve-vram 2.0 --lowvram"`
@@ -609,7 +640,7 @@ exit 0
 
 Note that `pip install`ation of custom nodes is not possible in `normal` security level, and `weak` should be used instead (see the "Security levels" section for details)
 
-### 5.4.3. BASE_DIRECTORY
+### 5.4.4. BASE_DIRECTORY
 
 The `BASE_DIRECTORY` environment variable is used to specify the directory where ComfyUI will look for the `models`, `input`, `output`, `user` and `custom_nodes` folders. This is a good option to seprate the virtual environment and ComfyUI's code (in the `run` folder) from the end user's files (in the `basedir` folder). For Unraid in particular, you can use this to place the `basedir` on a separate volume, outside of the `appdata` folder.
 
@@ -621,25 +652,13 @@ This is to avoid having multiple copies of downloaded models (taking multiple GB
 **If your `models` directory is large, I recommend doing a manual `mv run/ComfyUI/models basedir/.` before running the container. The volumes are considered separate within the container, so the move operation within the container will 1) perform a file copy for each file within the folder (which will take a while) 2) double the model directory size before it is finished copying before it can delete the previous folder.**
 The same logic can be applied to the `input`, `output`, `user`, and `custom_nodes` folders.
 
-### 5.4.4. SECURITY_LEVEL
+### 5.4.5. SECURITY_LEVEL
 
 After the initial run, the `SECURITY_LEVEL` environment variable can be used to alter the default security level imposed by ComfyUI Manager.
 
 When following the rules defined at https://github.com/ltdrdata/ComfyUI-Manager?tab=readme-ov-file#security-policy the user should decide if `normal` will work for their use case. 
 You will prefer ' weak ' if you manually install or alter custom nodes.
 **WARNING: Using `normal-` will prevent access to the WebUI unless the USE_SOCAT environment variable is set to `true`.**
-
-### 5.4.5. USE_UV
-
-The `USE_UV` environment variable is used to enable the use of `uv` instead of `pip`.
-
-[`uv`](https://docs.astral.sh/uv/) is a fast, all-in-one Python package & project manager written in Rust. It aims to replace a whole stack of python tools with a single binary that is faster than pip in many cases.
-
-`uv` is also supported by ComfyUI Manager natively when the `use_uv` option is set to `true` in the `basedir/user/default/ComfyUI-Manager/config.ini` file. 
-We will attempt to set it to the value of the `USE_UV` environment variable. Similar to `SECURITY_LEVEL`, it will be required to `Restart` ComfyUI to apply the change.
-
-It is currently not set to `true` by default.
-It is recommended to set `USE_UV=true` as it make the container start faster and allow for a simpler nodes installation process.
 
 ### 5.4.6. USE_SOCAT
 
@@ -859,7 +878,7 @@ You can then run the `ubuntu24_cuda12.8` container.
 For example:
 
 ```bash
-docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir  -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 8188:8188 mmartial/comfyui-nvidia-docker:ubuntu24_cuda12.8-latest
+docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir  -e USE_UV=true -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 8188:8188 mmartial/comfyui-nvidia-docker:ubuntu24_cuda12.8-latest
 ```
 
 During initial run, you will see something similar to:
@@ -1030,6 +1049,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20251129: Recommended `USE_UV` environment variable to enable the use of `uv` instead of `pip` (must be manually set to `true` to enable) + Extended `uv` integration (including `UV_TORCH_BACKEND`) + Extended `userscripts_dir` integration with `uv` and `--index-url` as set in the main script + Integrated pip dev package installation from the main script so it is available to userscripts + Tested CUDA 13.0 + Extended `README.md` for topics such as "frontend version outdated" and [Smart Gallery for ComfyUI](https://github.com/biagiomaf/smart-comfyui-gallery) information.
 - 20251122: Added `USE_UV` environment variable to enable the use of `uv` instead of `pip` (not enabled by default) + updated some `userscripts_dir` to support `uv` + fix `config.ini` alterations in non-alphanumeric entries + attempt to fix the DB initialization issue (reported in [Issue 81](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/81))
 - 20251006: Fix environment variable loading (side effect of fix for loading configuration file overrides, as reported in [Issue 78](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/78))
 - 20251005: Fix loading configuration file overrides (e.g. `comfyui-nvidia_config.sh`) + extended `userscripts_dir` to support Nunchaku and xformers.
