@@ -325,7 +325,7 @@ it_dir="${COMFYUSER_DIR}/mnt/pip_cache"
 if [ -d "${it_dir}" ]; then
   echo ""; echo "== ${it_dir} present: Setting the PIP_CACHE_DIR variable to use it"
   dir_validate "${it_dir}"
-  it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to pip cache directory as the comfy user"
+  it="${it_dir}/.testfile"; touch $it && rm -f $it || error_exit "Failed to write to pip cache directory as the comfy user"
   export PIP_CACHE_DIR=${COMFYUSER_DIR}/mnt/pip_cache
 fi
 
@@ -334,7 +334,7 @@ it_dir="${COMFYUSER_DIR}/mnt/tmp"
 if [ -d "${it_dir}" ]; then
   echo ""; echo "== ${it_dir} present: Setting the TMPDIR variable to use it"
   dir_validate "${it_dir}"
-  it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to tmp directory as the comfy user"
+  it="${it_dir}/.testfile"; touch $it && rm -f $it || error_exit "Failed to write to tmp directory as the comfy user"
   export TMPDIR=${COMFYUSER_DIR}/mnt/tmp
 fi
 
@@ -401,7 +401,7 @@ fi
 echo ""; echo "== Confirm the ComfyUI directory is present and we can write to it"
 it_dir="${COMFYUSER_DIR}/mnt/ComfyUI"
 dir_validate "${it_dir}" 
-it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to ComfyUI directory as the comfy user"
+it="${it_dir}/.testfile"; touch $it && rm -f $it || error_exit "Failed to write to ComfyUI directory as the comfy user"
 
 ##
 echo ""; echo "== Check on BASE_DIRECTORY (if used / if using \"$ignore_value\" then disable it)"
@@ -409,7 +409,7 @@ if [ "$BASE_DIRECTORY" == "$ignore_value" ]; then BASE_DIRECTORY=""; fi
 if [ ! -z "$BASE_DIRECTORY" ]; then 
   it_dir=$BASE_DIRECTORY
   dir_validate "${it_dir}" "mount"
-  it="${it_dir}/.testfile" && touch $it && rm -f $it || error_exit "Failed to write to BASE_DIRECTORY"
+  it="${it_dir}/.testfile"; touch $it && rm -f $it || error_exit "Failed to write to BASE_DIRECTORY"
 fi
 
 ##
@@ -420,7 +420,7 @@ if [ ! -d "${it_dir}" ]; then
   mkdir -p ${it_dir}
 fi
 dir_validate "${it_dir}"
-it=${it_dir}/.testfile && rm -f $it || error_exit "Failed to write to HF directory as the comfy user"
+it=${it_dir}/.testfile; touch $it && rm -f $it || error_exit "Failed to write to HF directory as the comfy user"
 export HF_HOME=${COMFYUSER_DIR}/mnt/HF
 
 # Attempting to support multiple build bases
@@ -433,7 +433,7 @@ echo ""; echo "== if a venv is present, confirm we can write to it"
 it_dir="${COMFYUSER_DIR}/mnt/venv"
 if [ -d "${it_dir}" ]; then
   dir_validate "${it_dir}"
-  it=${it_dir}/.testfile && rm -f $it || error_exit "Failed to write to venv directory as the comfy user"
+  it=${it_dir}/.testfile; touch $it && rm -f $it || error_exit "Failed to write to venv directory as the comfy user"
   # use the special value to mark existing venv if the marker is not present
   it=${it_dir}/.build_base.txt; if [ ! -f $it ]; then echo $BUILD_BASE_SPECIAL > $it; fi
 fi
@@ -473,7 +473,7 @@ fi
 echo ""; echo "== Confirming venv is writeable"
 it_dir="${COMFYUSER_DIR}/mnt/venv"
 dir_validate "${it_dir}"
-it="${it_dir}/.testfile" && rm -f $it || error_exit "Failed to write to venv directory as the comfy user"
+it="${it_dir}/.testfile"; touch $it && rm -f $it || error_exit "Failed to write to venv directory as the comfy user"
 
 ##
 echo ""; echo "== Activate the virtualenv"
@@ -697,7 +697,7 @@ fi
 if [ ! -z "$BASE_DIRECTORY" ]; then
   if [ ! -d "$BASE_DIRECTORY" ]; then error_exit "BASE_DIRECTORY ($BASE_DIRECTORY) not found or not a directory"; fi
   dir_validate "${BASE_DIRECTORY}" "mount"
-  it=${BASE_DIRECTORY}/.testfile && rm -f $it || error_exit "Failed to write to BASE_DIRECTORY"
+  it=${BASE_DIRECTORY}/.testfile; touch $it && rm -f $it || error_exit "Failed to write to BASE_DIRECTORY"
 
   echo ""; echo "== Setting base_directory: $BASE_DIRECTORY"
 
@@ -729,7 +729,7 @@ if [ ! -z "$BASE_DIRECTORY" ]; then
     fi
 
     dir_validate "$out"
-    it=${out}/.testfile && rm -f $it || error_exit "Failed to write to $out"
+    it=${out}/.testfile; touch $it && rm -f $it || error_exit "Failed to write to $out"
   done
 
   # Next check that all expected directories in models are present. Create them otherwise
@@ -755,7 +755,7 @@ if [ ! -z "$BASE_DIRECTORY" ]; then
     fi
 
     dir_validate "$it"
-    it=${it}/.testfile && rm -f $it || error_exit "Failed to write to $it"
+    it=${it}/.testfile; touch $it && rm -f $it || error_exit "Failed to write to $it"
   done
 
   # Re-Create the ComfyUI/user folder if it does not exist, so the comfyui.db can be placeed there (needed until BASEDIR is supported)
