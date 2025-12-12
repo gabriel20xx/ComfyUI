@@ -1049,6 +1049,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20251211: Updated [ComfyUI Manager `config.ini` path](https://github.com/Comfy-Org/ComfyUI-Manager/blob/main/docs/en/v3.38-userdata-security-migration.md). See [Issue 92](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/92#issuecomment-3644751710) for more details.
 - 20251129: Recommended `USE_UV` environment variable to enable the use of `uv` instead of `pip` (must be manually set to `true` to enable) + Extended `uv` integration (including `UV_TORCH_BACKEND`) + Extended `userscripts_dir` integration with `uv` and `--index-url` as set in the main script + Integrated pip dev package installation from the main script so it is available to userscripts + Tested CUDA 13.0 + Extended `README.md` for topics such as "frontend version outdated" and [Smart Gallery for ComfyUI](https://github.com/biagiomaf/smart-comfyui-gallery) information.
 - 20251122: Added `USE_UV` environment variable to enable the use of `uv` instead of `pip` (not enabled by default) + updated some `userscripts_dir` to support `uv` + fix `config.ini` alterations in non-alphanumeric entries + attempt to fix the DB initialization issue (reported in [Issue 81](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/81))
 - 20251006: Fix environment variable loading (side effect of fix for loading configuration file overrides, as reported in [Issue 78](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/78))
