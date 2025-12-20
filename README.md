@@ -104,8 +104,8 @@ If this version is incompatible with your container runtime, please see the list
 
 | tag | aka | note |
 | --- | --- | --- |
-| ubuntu22_cuda12.2.2-latest | | | 
-| ubuntu22_cuda12.3.2-latest | | | 
+| ubuntu22_cuda12.2.2-latest | | to be depreacted in Spring 2026 | 
+| ubuntu22_cuda12.3.2-latest | | to be depreacted in Spring 2026 | 
 | ubuntu22_cuda12.4.1-latest | | | 
 | ubuntu24_cuda12.5.1-latest | | was `latest` up to `20250320` release |
 | ubuntu24_cuda12.6.3-latest | `latest` | `latest` as of `20250413` release |
