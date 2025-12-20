@@ -25,6 +25,10 @@ services:
       - BASE_DIRECTORY=/basedir
       # set SECURITY_LEVEL to normal (Default: normal)
       - SECURITY_LEVEL=normal
+      # New ComfyUI Manager parameters (update to ComfyUI >= 0.5.0 before using)
+      - USE_NEW_MANAGER=true
+      # If you prefer the legacy UI (with the new manager)
+#      - NABLE_MANAGER_LEGACY_UI=true
       # NVIDIA GPU recommended parameters
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
@@ -44,6 +48,8 @@ services:
 #      - LD_LIBRARY_PATH=/usr/lib/wsl/lib 
 # Add extra environment variables if needed
 #      - HF_TOKEN=hf_... # set your huggingface token to avoid rate limiting
+# This is set by default, do not change it if you intend to install custom nodes
+#      - NETWORK_MODE=personal_cloud
     deploy:
       resources:
         reservations:

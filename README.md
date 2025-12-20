@@ -166,14 +166,15 @@ It is recommended that a container monitoring tool be available to watch the log
   - [5.4. Available environment variables](#54-available-environment-variables)
     - [5.4.1. USE\_UV](#541-use_uv)
     - [5.4.2. WANTED\_UID and WANTED\_GID](#542-wanted_uid-and-wanted_gid)
-    - [5.4.3. COMFY\_CMDLINE\_BASE and COMFY\_CMDLINE\_EXTRA](#543-comfy_cmdline_base-and-comfy_cmdline_extra)
-    - [5.4.4. BASE\_DIRECTORY](#544-base_directory)
-    - [5.4.5. SECURITY\_LEVEL](#545-security_level)
-    - [5.4.6. USE\_SOCAT](#546-use_socat)
-    - [5.4.7. FORCE\_CHOWN](#547-force_chown)
-    - [5.4.8. USE\_PIPUPGRADE](#548-use_pipupgrade)
-    - [5.4.9. DISABLE\_UPGRADES](#549-disable_upgrades)
-    - [5.4.10. PREINSTALL\_TORCH and PREINSTALL\_TORCH\_CMD](#5410-preinstall_torch-and-preinstall_torch_cmd)
+    - [5.4.3. USE\_NEW\_MANAGER](#543-use_new_manager)
+    - [5.4.4. COMFY\_CMDLINE\_BASE and COMFY\_CMDLINE\_EXTRA](#544-comfy_cmdline_base-and-comfy_cmdline_extra)
+    - [5.4.5. BASE\_DIRECTORY](#545-base_directory)
+    - [5.4.6. SECURITY\_LEVEL](#546-security_level)
+    - [5.4.7. USE\_SOCAT](#547-use_socat)
+    - [5.4.8. FORCE\_CHOWN](#548-force_chown)
+    - [5.4.9. USE\_PIPUPGRADE](#549-use_pipupgrade)
+    - [5.4.10. DISABLE\_UPGRADES](#5410-disable_upgrades)
+    - [5.4.11. PREINSTALL\_TORCH and PREINSTALL\_TORCH\_CMD](#5411-preinstall_torch-and-preinstall_torch_cmd)
   - [5.5. ComfyUI Manager \& Security levels](#55-comfyui-manager--security-levels)
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
@@ -606,7 +607,18 @@ The running user's `uid` and `gid` can be obtained using `id -u` and `id -g` in 
 
 **Note:** It is not recommended to override the default starting user of the script (`comfytoo`), as it is used to set up the `comfy` user to run with the provided `WANTED_UID` and `WANTED_GID`. The script checks for the `comfytoo` user to do so, then after restarting as the `comfy` user, the script checks that the `comfy` user has the correct `uid` and `gid` and will fail if it has not been able to set it up.
 
-### 5.4.3. COMFY_CMDLINE_BASE and COMFY_CMDLINE_EXTRA
+### 5.4.3. USE_NEW_MANAGER
+
+Since ComfyUI 0.5.0, ComfyUI Manager has been integrated into the main ComfyUI application. 
+To use it, set the `USE_NEW_MANAGER` environment variable to `true`.
+Per https://blog.comfy.org/p/meet-the-new-comfyui-manager the new manager and old one can exist together
+
+Per https://github.com/comfyanonymous/ComfyUI?tab=readme-ov-file#command-line-options the new UI allows the use of the legacy UI by setting the `USE_MANAGER_LEGACY_UI` environment variable to `true`.
+
+Note: with the new manager a new `network_mode` parameter was added to the Manager's config file. 
+A `NETWORK_MODE` environment variable has been added to set this parameter to `personal_cloud` for the container to be able to install custom nodes. This setting is set by default, changing it might cause some issues.
+
+### 5.4.4. COMFY_CMDLINE_BASE and COMFY_CMDLINE_EXTRA
 
 You can add extra parameters by adding ComfyUI-compatible command-line arguments to the `COMFY_CMDLINE_EXTRA` environment variable.
 For example: `docker run [...] -e COMFY_CMDLINE_EXTRA="--fast --reserve-vram 2.0 --lowvram"`
@@ -640,7 +652,7 @@ exit 0
 
 Note that `pip install`ation of custom nodes is not possible in `normal` security level, and `weak` should be used instead (see the "Security levels" section for details)
 
-### 5.4.4. BASE_DIRECTORY
+### 5.4.5. BASE_DIRECTORY
 
 The `BASE_DIRECTORY` environment variable is used to specify the directory where ComfyUI will look for the `models`, `input`, `output`, `user` and `custom_nodes` folders. This is a good option to seprate the virtual environment and ComfyUI's code (in the `run` folder) from the end user's files (in the `basedir` folder). For Unraid in particular, you can use this to place the `basedir` on a separate volume, outside of the `appdata` folder.
 
@@ -652,7 +664,7 @@ This is to avoid having multiple copies of downloaded models (taking multiple GB
 **If your `models` directory is large, I recommend doing a manual `mv run/ComfyUI/models basedir/.` before running the container. The volumes are considered separate within the container, so the move operation within the container will 1) perform a file copy for each file within the folder (which will take a while) 2) double the model directory size before it is finished copying before it can delete the previous folder.**
 The same logic can be applied to the `input`, `output`, `user`, and `custom_nodes` folders.
 
-### 5.4.5. SECURITY_LEVEL
+### 5.4.6. SECURITY_LEVEL
 
 After the initial run, the `SECURITY_LEVEL` environment variable can be used to alter the default security level imposed by ComfyUI Manager.
 
@@ -660,7 +672,7 @@ When following the rules defined at https://github.com/ltdrdata/ComfyUI-Manager?
 You will prefer ' weak ' if you manually install or alter custom nodes.
 **WARNING: Using `normal-` will prevent access to the WebUI unless the USE_SOCAT environment variable is set to `true`.**
 
-### 5.4.6. USE_SOCAT
+### 5.4.7. USE_SOCAT
 
 The `USE_SOCAT` environment variable is used to enable an alternate service behavior: have ComfyUI listen on `127.0.0.1:8181` and use `socat` to expose the service on `0.0.0.0:8188`.
 
@@ -668,7 +680,7 @@ The default is to run ComfyUI within the container to listen on `0.0.0.0:8188` (
 
 Some `SECURITY_LEVEL` settings might prevent access to the WebUI unless the tool is running on `127.0.0.1` (i.e., only the host). The `USE_SOCAT=true` environment variable can be used to support this behavior.
 
-### 5.4.7. FORCE_CHOWN
+### 5.4.8. FORCE_CHOWN
 
 The `FORCE_CHOWN` environment variable is used to force change directory ownership as the `comfy` user during script startup (this process might be slow).
 
@@ -678,7 +690,7 @@ When set with any non empty value other than `false`, `FORCE_CHOWN` will be enab
 
 When set, it will "force chown" every sub-folder in the `run` and `basedir` folders when it first attempt to access them before verifying they are owned by the proper user.
 
-### 5.4.8. USE_PIPUPGRADE
+### 5.4.9. USE_PIPUPGRADE
 
 The `USE_PIPUPGRADE` environment variable is used to enable the use of `pip3 install --upgrade` to upgrade ComfyUI and other Python packages to the latest version during startup. If not set, it will use `pip3 install` to install packages.
 
@@ -686,7 +698,7 @@ This option is enabled by default as with the sepraation of the UI from the Core
 
 It can be disabled by setting `USE_PIPUPGRADE=false`.
 
-### 5.4.9. DISABLE_UPGRADES
+### 5.4.10. DISABLE_UPGRADES
 
 The `DISABLE_UPGRADES` environment variable is used to disable upgrades when starting the container (also disables `USE_PIPUPGRADE` and `PREINSTALL_TORCH`).
 
@@ -694,7 +706,7 @@ This option is disabled by default (set to `false`) as it is recommended to keep
 
 It is recommended to only use it on an installation after its initial setup (especially if you plan to use `PREINSTALL_TORCH`: it will bypass this step as well), as it will attempt to prevent Comfy and other Python packages from being upgraded outside of the WebUI. Any package update will have to be performed through the WebUI (ComfyUI Manager).
 
-### 5.4.10. PREINSTALL_TORCH and PREINSTALL_TORCH_CMD
+### 5.4.11. PREINSTALL_TORCH and PREINSTALL_TORCH_CMD
 
 The `PREINSTALL_TORCH` environment variable will attempt to automatically install/upgrade `torch` after the virtual environment is created.
 
@@ -1049,6 +1061,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20251219: Added `USE_NEW_MANAGER` and `ENABLE_MANAGER_LEGACY_UI` to support new Manager introduced in Comfy 0.5
 - 20251211: Updated [ComfyUI Manager `config.ini` path](https://github.com/Comfy-Org/ComfyUI-Manager/blob/main/docs/en/v3.38-userdata-security-migration.md): it is recommended to see  [Issue 92](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/92#issuecomment-3644751710) for more details.
 - 20251129: Recommended `USE_UV` environment variable to enable the use of `uv` instead of `pip` (must be manually set to `true` to enable) + Extended `uv` integration (including `UV_TORCH_BACKEND`) + Extended `userscripts_dir` integration with `uv` and `--index-url` as set in the main script + Integrated pip dev package installation from the main script so it is available to userscripts + Tested CUDA 13.0 + Extended `README.md` for topics such as "frontend version outdated" and [Smart Gallery for ComfyUI](https://github.com/biagiomaf/smart-comfyui-gallery) information.
 - 20251122: Added `USE_UV` environment variable to enable the use of `uv` instead of `pip` (not enabled by default) + updated some `userscripts_dir` to support `uv` + fix `config.ini` alterations in non-alphanumeric entries + attempt to fix the DB initialization issue (reported in [Issue 81](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/81))
