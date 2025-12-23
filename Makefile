@@ -95,8 +95,7 @@ docker_rmi:
 #LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -2 | head -1)
 # use the 2nd to last entry as the candidate
 #LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -3 | head -1)
-# use the 3nd to last entry as the candidate
-LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -4 | head -1)
+LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -5 | head -1)
 
 LATEST_CANDIDATE=$(shell echo ${COMFYUI_CONTAINER_NAME}:${LATEST_ENTRY})
 

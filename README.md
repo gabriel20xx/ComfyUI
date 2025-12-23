@@ -112,6 +112,7 @@ If this version is incompatible with your container runtime, please see the list
 | ubuntu24_cuda12.8-latest | | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
 | ubuntu24_cuda12.9-latest | | |
 | ubuntu24_cuda13.0-latest | | |
+| ubuntu24_cuda13.1-latest | | untested |
 
 For more details on driver capabilities and how to update those, please see [Setting up NVIDIA docker & podman (Ubuntu 24.04)](https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman).
 
@@ -1061,6 +1062,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20251222: Added `ubuntu24_cuda13.1` build (no new release, just adding the new container)
 - 20251219: Added `USE_NEW_MANAGER` and `ENABLE_MANAGER_LEGACY_UI` to support new Manager introduced in Comfy 0.5
 - 20251211: Updated [ComfyUI Manager `config.ini` path](https://github.com/Comfy-Org/ComfyUI-Manager/blob/main/docs/en/v3.38-userdata-security-migration.md): it is recommended to see  [Issue 92](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/92#issuecomment-3644751710) for more details.
 - 20251129: Recommended `USE_UV` environment variable to enable the use of `uv` instead of `pip` (must be manually set to `true` to enable) + Extended `uv` integration (including `UV_TORCH_BACKEND`) + Extended `userscripts_dir` integration with `uv` and `--index-url` as set in the main script + Integrated pip dev package installation from the main script so it is available to userscripts + Tested CUDA 13.0 + Extended `README.md` for topics such as "frontend version outdated" and [Smart Gallery for ComfyUI](https://github.com/biagiomaf/smart-comfyui-gallery) information.
