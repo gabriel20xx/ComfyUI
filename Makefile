@@ -8,7 +8,9 @@ DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
 DOCKER_BUILD_ARGS=
 
-COMFYUI_NVIDIA_DOCKER_VERSION=20251219
+COMFYUI_NVIDIA_DOCKER_VERSION=20251227
+DEFAULT_PLATFORM=linux/amd64
+DGX_PLATFORM=linux/arm64
 
 COMFYUI_CONTAINER_NAME=comfyui-nvidia-docker
 
@@ -24,8 +26,12 @@ all:
 	@echo -n "      "; echo ${DOCKER_ALL} | sed -e 's/ /\n      /g'
 	@echo ""
 	@echo "build:          builds all"
+	@echo "build-dgx:      builds ubuntu24_cuda13.0 for DGX Spark (change BUILD_PLATFORM to linux/arm64)"
 
 build: ${DOCKER_ALL}
+
+build-dgx:
+	@BUILD_PLATFORM=${DGX_PLATFORM} make ubuntu24_cuda13.0
 
 ${DOCKERFILE_DIR}:
 	@mkdir -p ${DOCKERFILE_DIR}
@@ -38,12 +44,12 @@ ${DOCKER_ALL}: ${DOCKERFILE_DIR}
 	@$(eval VAR_NT="${COMFYUI_CONTAINER_NAME}-$@")
 	@echo "-- Docker command to be run:"
 	@if [ "${RELEASE_BUILD}" = "true" ]; then \
-	  echo "docker buildx ls | grep -q ${COMFYUI_CONTAINER_NAME} && echo \"builder already exists -- to delete it, use: docker buildx rm ${COMFYUI_CONTAINER_NAME}\" || docker buildx create --name ${COMFYUI_CONTAINER_NAME}"  > ${VAR_NT}.cmd; \
-	  echo "docker buildx use ${COMFYUI_CONTAINER_NAME} || exit 1" >> ${VAR_NT}.cmd; \
+		echo "docker buildx ls | grep -q ${COMFYUI_CONTAINER_NAME} && echo \"builder already exists -- to delete it, use: docker buildx rm ${COMFYUI_CONTAINER_NAME}\" || docker buildx create --name ${COMFYUI_CONTAINER_NAME}"  > ${VAR_NT}.cmd; \
+		echo "docker buildx use ${COMFYUI_CONTAINER_NAME} || exit 1" >> ${VAR_NT}.cmd; \
 	else \
-	  echo "docker buildx use default || exit 1" > ${VAR_NT}.cmd; \
+		echo "docker buildx use default || exit 1" > ${VAR_NT}.cmd; \
 	fi
-	@echo "BUILDX_EXPERIMENTAL=1 ${DOCKER_PRE} docker buildx debug --on=error build --progress plain --platform linux/amd64 ${DOCKER_BUILD_ARGS} \\" >> ${VAR_NT}.cmd
+	@echo "BUILDX_EXPERIMENTAL=1 ${DOCKER_PRE} docker buildx debug --on=error build --progress plain --platform $${BUILD_PLATFORM:-${DEFAULT_PLATFORM}} ${DOCKER_BUILD_ARGS} \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg COMFYUI_NVIDIA_DOCKER_VERSION=\"${COMFYUI_NVIDIA_DOCKER_VERSION}\" \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg BUILD_BASE=\"$@\" \\" >> ${VAR_NT}.cmd
 	@echo "  --tag=\"${COMFYUI_CONTAINER_NAME}:$@\" \\" >> ${VAR_NT}.cmd
