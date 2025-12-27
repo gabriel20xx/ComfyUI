@@ -25,6 +25,8 @@
 
 <h2>GPU specific note</h2>
 
+When using the **DGX Spark**: you will need to build from source, see the "DGX Spark Support" section.
+
 When using Blackwell (RTX50xx) GPUs: 
 - you must use NVIDIA driver 570 (or above).
 - use the `ubuntu24_cuda12.8` container tag (or above).
@@ -50,9 +52,11 @@ To avoid `latest` changing your container's Ubuntu or CUDA version, manually sel
 
 <h2>Quick Start</h2>
 
-**Windows users, see the "Windows: WSL2 and podman" section**
+**Windows users, see the Wiki at [https://github.com/mmartial/ComfyUI-Nvidia-Docker/wiki/Windows:-WSL2](https://github.com/mmartial/ComfyUI-Nvidia-Docker/wiki/Windows:-WSL2)**
 
 **Blackwell (RTX 50xx series GPUs) users, see the "Blackwell support" section**
+
+**DGX Spark users, see the "DGX Spark support" section**
 
 Make sure you have the NVIDIA Container Toolkit installed. More details: https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman
 
@@ -111,7 +115,7 @@ If this version is incompatible with your container runtime, please see the list
 | ubuntu24_cuda12.6.3-latest | `latest` | `latest` as of `20250413` release |
 | ubuntu24_cuda12.8-latest | | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
 | ubuntu24_cuda12.9-latest | | |
-| ubuntu24_cuda13.0-latest | | |
+| ubuntu24_cuda13.0-latest | | a DGX Spark version can be built using `make build-dgx` |
 | ubuntu24_cuda13.1-latest | | untested |
 
 For more details on driver capabilities and how to update those, please see [Setting up NVIDIA docker & podman (Ubuntu 24.04)](https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman).
@@ -180,11 +184,8 @@ It is recommended that a container monitoring tool be available to watch the log
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
   - [5.7. Misc](#57-misc)
-    - [5.7.1. Windows: WSL2](#571-windows-wsl2)
-      - [5.7.1.1. Docker Desktop](#5711-docker-desktop)
-      - [5.7.1.2. podman](#5712-podman)
+    - [5.7.1. DGX Spark support](#571-dgx-spark-support)
     - [5.7.2. Blackwell support](#572-blackwell-support)
-      - [5.7.2.1. PyTorch2.7-CUDA12.8.sh](#5721-pytorch27-cuda128sh)
     - [5.7.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#573-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
     - [5.7.4. run/pip\_cache and run/tmp](#574-runpip_cache-and-runtmp)
     - [5.7.5. Direct Cloud deployment: GPU Trader](#575-direct-cloud-deployment-gpu-trader)
@@ -769,92 +770,30 @@ See [extras/FAQ.md] for additional FAQ topics, among which:
 - Updating ComfyUI-Manager
 - Installing a custom node from git
 
-### 5.7.1. Windows: WSL2 
+### 5.7.1. DGX Spark support
 
-**Note:** per https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/26, you must use `-v /usr/lib/wsl:/usr/lib/wsl -e LD_LIBRARY_PATH=/usr/lib/wsl/lib` to passthrough the nvidia drivers related to opengl.
+The DGX Spark is an ARM64 based GPU, and as such, it requires a different image to be used.
 
-**Note:** per https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/82, "do not mount windows os directories for basedir, store them inside the WSL environment, and mount those to the docker". More details and links in the issue.
+Needed: `git`, `make`, `docker`.
 
-The container can be used on Windows using "Windows Subsystem for Linux 2" (WSL2). 
-For additional details on WSL, please read https://learn.microsoft.com/en-us/windows/wsl/about
-
-WSL2 is a Linux guest Virtual Machine on a Windows host (for a slightly longer understanding of what this means, please see the first section of https://www.gkr.one/blg-20240501-docker101).
-The started container is Linux based (Ubuntu Linux) that will perform a full installation of ComfyUI from sources.
-Some experience with the Linux and Python command line interface is relevant for any modifictions of the virtual environment of container post container start.
-
-#### 5.7.1.1. Docker Desktop
-
-If you have Docker Desktop installed on your Windows machine, you can use it to run the container with GPU support enabled. 
-
-For additional details on Docker Desktop and WSL2, please read https://docs.docker.com/desktop/features/wsl/
-
-Please see https://docs.docker.com/desktop/features/gpu/ for details on how to enable GPU support with Docker.
-
-Once installation is complete, you can start the container with GPU support enabled by using the `docker run` and `docker compose up` commands as described in earlier sections of this document.
-
-#### 5.7.1.2. podman
-
-**Warning:** currently `podman compose` (`sudo apt install -y podman-compose`) does not appear to work on WSL2. If you have any suggestions, please us know in https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/73
-
-For additional details on podman, please read https://docs.podman.io/latest/getting_started/
-
-In the following, we will describe the method to use the `podman` command line interface. 
-
-First, follow the steps in Section 2 ("Getting Started with CUDA on WSL 2") of https://docs.nvidia.com/cuda/wsl-user-guide/index.html
-
-Once you have your Ubuntu Virtual Machine installed, start its terminal and follow the instructions to create your new user account (in the rest of this section we will use `USER` to refer to it, adapt as needed) and set a password (which you will use for `sudo` commands). Check your UID and GID using `id`; by default those should be `1000` and `1000`.
-
-Then, from the terminal, run the following commands (for further details on some of the steps below, see https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman):
+The following commands will build a version of the image using `linux/arm64` as the platform.
 
 ```bash
-# Update the package list & Upgrade the already installed packages
-sudo apt update && sudo apt upgrade -y
+# Clone the repository
+git clone https://github.com/martial/comfyui-nvidia-docker.git
 
-# Install podman
-sudo apt install -y podman
+# Build the Docker image
+cd comfyui-nvidia-docker
+make build-dgx
 
-# Install the nvidia-container-toolkit
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
-  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
-    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
-
-# Generate the Container Device Interface (CDI) for podman
-sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
-# note that when you update the Nvidia driver, you will need to regenerate the CDI
+# Check the name of the image that was built
+make docker_tag_list
 ```
 
-Then you can confirm the CUDA version your driver supports with:
+The local image name will something like `comfyui-nvidia-docker:ubuntu24_cuda13.0`.
 
-```bash
-podman run --rm --device nvidia.com/gpu=all ubuntu nvidia-smi
-```
-with the latest driver, you can support CUDA 12.8 or above, which is needed for RTX 50xx GPUs.
-
-In the following, we will run the `latest` tag but you can modify this depending on the CUDA version you want to support.
-
-To run the container:
-
-```bash
-# Create the needed data directories
-# 'run' will contain your virtual environment(s), ComfyUI source code, and Hugging Face Hub data
-# 'basedir' will contain your custom nodes, input, output, user and models directories
-mkdir run basedir
-
-# Download and start the container
-# - the directories will be written with your user's UID and GID
-# - the ComfyUI-Manager security levels will be set to "normal"
-# - we will expose the WebUI to http://127.0.0.1:8188
-# please see other sections of this README.md for options
-podman run --rm -it --userns=keep-id --device nvidia.com/gpu=all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -v /usr/lib/wsl:/usr/lib/wsl -e LD_LIBRARY_PATH=/usr/lib/wsl/lib-e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia docker.io/mmartial/comfyui-nvidia-docker:latest
-```
-
-Once started, go to http://127.0.0.1:8188 and enjoy your first workflow (the bottle example). With this workflow, ComfyUI-Manager should offer to download the model. but since your browser runs on the Windows side, we will need to move the downloaded file to the Ubuntu VM. In another `Ubuntu` terminal, run (adapt `USER`): `mv /mnt/c/Users/USER/Downloads/v1-5-pruned-emaonly-fp16.safetensors basedir/models/checkpoints/`. You will see that `basedir` and `run` are owned by your `USER`.
-
-After using ComfyUI, `Ctrl+C` in the `podman` terminal will terminate the WebUI. Use the `podman run ...` command from the same folder in the Ubuntu terminal to restart it and use the same `run` and `basedir` as before.
+Use this value in the `image:` section of the `docker-compose.yml` file; ie it should read: `image: comfyui-nvidia-docker:ubuntu24_cuda13.0`.
+Similaryly, if starting the container with `docker run`, it should read: `docker run ... mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.0`.
 
 ### 5.7.2. Blackwell support
 
@@ -863,63 +802,6 @@ To use the Blackwell GPU (RTX 5080/5090), you will need to make sure to install 
 On 20250424, PyTorch 2.7.0 was released with support for CUDA 12.8.
 
 With the 20250713 release, we are attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected, making the `PyTorch2.7-CUDA12.8.sh` script unnecessary.
-
-#### 5.7.2.1. PyTorch2.7-CUDA12.8.sh
-
-**20250713**: With the 20250713 release, we are attempting to automatically select the `cu128` index-url when CUDA 12.8 (or above) is detected.
-
-The `postvenv_script.bash` feature was added because with the release of PyTorch 2.7.0, for the time being, when installing on a CUDA 12.8 base image, the PyTorch wheel used appears to be for CUDA 12.6, which is incompatible. 
-
-Until `cu128` is the default, a workaround script [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) is provided that will install PyTorch 2.7.0 with CUDA 12.8 support. 
-
-To use it, copy the [extras/PyTorch2.7-CUDA12.8.sh](./extras/PyTorch2.7-CUDA12.8.sh) file into the `run` folder as `postvenv_script.bash` before starting the container.
-
-```bash
-## Adapt <YOUR_EXEC_FOLDER> to the folder that contains your run folder
-cd <YOUR_EXEC_FOLDER>
-
-## Only use one of the wget or curl depending on what is installed on your system
-
-# wget
-wget https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7-CUDA12.8.sh -O ./run/postvenv_script.bash
-
-# curl
-curl -s -L https://raw.githubusercontent.com/mmartial/ComfyUI-Nvidia-Docker/refs/heads/main/extras/PyTorch2.7-CUDA12.8.sh -o ./run/postvenv_script.bash
-```
-
-You can then run the `ubuntu24_cuda12.8` container. 
-For example:
-
-```bash
-docker run --rm -it --runtime nvidia --gpus all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir  -e USE_UV=true -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 8188:8188 mmartial/comfyui-nvidia-docker:ubuntu24_cuda12.8-latest
-```
-
-During initial run, you will see something similar to:
-
-```
-[...]
-== Checking for post-venv script: /comfy/mnt/postvenv_script.bash
-== Attempting to make user script executable
-++ Running user script: /comfy/mnt/postvenv_script.bash
-PyTorch is not installed, need to install
-Looking in indexes: https://download.pytorch.org/whl/cu128
-Collecting torch==2.7.0
-[...]
-```
-
-This step is ran after the virtual environment is created and before the ComfyUI installation.
-It will install PyTorch 2.7.0 (`torch`, `torchvision`, `torchaudio`) with CUDA 12.8 support.
-
-In the log, you can confirm ComfyUI uses the proper version of PyTorch:
-
-```
-===================
-== Running ComfyUI
-[...]
-pytorch version: 2.7.0+cu128
-```
-
-Additional details on this can be found in [this issue](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/43).
 
 ### 5.7.3. Specifying alternate folder location (ex: --output_directory) with BASE_DIRECTORY
 
