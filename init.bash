@@ -550,6 +550,12 @@ run_userscript() {
   echo ""
 }
 
+# Check that `pynvml` is not installed, uninstall it if it is
+if ${PIP3_BASE} show pynvml &>/dev/null; then
+  echo "== Uninstalling pynvml"
+  ${PIP3_BASE} uninstall pynvml -y || error_exit "Failed to uninstall pynvml"
+fi
+
 # Pre-install dev packages (used to be 10-pip3Dev.sh)
 ${PIP3_CMD} setuptools || error_exit "Failed to install setuptools"
 ${PIP3_CMD} ninja || error_exit "Failed to install ninja"
@@ -557,6 +563,12 @@ ${PIP3_CMD} cmake || error_exit "Failed to install cmake"
 ${PIP3_CMD} wheel || error_exit "Failed to install wheel"
 ${PIP3_CMD} pybind11 || error_exit "Failed to install pybind11"
 ${PIP3_CMD} packaging || error_exit "Failed to install packaging"
+# Addressing: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead.
+${PIP3_CMD} nvidia-ml-py || error_exit "Failed to install nvidia-ml-py"
+# Manually remove `pynvml` after a `dockr exec`
+# % sudo su comfy
+# % source /comfy/mnt/venv/bin/activate
+# % uv pip uninstall pynvml
 
 # Check for the post-venv script
 it=${COMFYUSER_DIR}/mnt/postvenv_script.bash

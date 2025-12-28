@@ -108,9 +108,9 @@ If this version is incompatible with your container runtime, please see the list
 
 | tag | aka | note |
 | --- | --- | --- |
-| ubuntu22_cuda12.2.2-latest | | to be depreacted in Spring 2026 | 
-| ubuntu22_cuda12.3.2-latest | | to be depreacted in Spring 2026 | 
-| ubuntu22_cuda12.4.1-latest | | | 
+| ubuntu22_cuda12.2.2-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
+| ubuntu22_cuda12.3.2-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
+| ubuntu22_cuda12.4.1-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
 | ubuntu24_cuda12.5.1-latest | | was `latest` up to `20250320` release |
 | ubuntu24_cuda12.6.3-latest | `latest` | `latest` as of `20250413` release |
 | ubuntu24_cuda12.8-latest | | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
@@ -944,6 +944,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20251228: fix a "FutureWarning" in `pynvml`
 - 20251227: (no new release) Updated `userscripts_dir` with Nunchaku 1.1.0 + Added `build-dgx` target to change the build target to `linux/arm64` (see [Issue 96](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/96))
 - 20251222: (no new release) Added `ubuntu24_cuda13.1` build
 - 20251219: Added `USE_NEW_MANAGER` and `ENABLE_MANAGER_LEGACY_UI` to support new Manager introduced in Comfy 0.5
