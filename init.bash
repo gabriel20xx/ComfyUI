@@ -419,9 +419,9 @@ cd "${it_dir}"
 if [ "$(git remote get-url origin)" != "${COMFY_REPO_URL}" ]; then
   echo ""; echo "== ComfyUI's remote is not set to the correct one, updating to ${COMFY_REPO_URL}"
   git remote set-url origin "${COMFY_REPO_URL}"
-else
-  echo ""; echo "== ComfyUI's remote is already set to the expected URL ${COMFY_REPO_URL}"
 fi
+echo -n "== ComfyUI origin set to: "; git remote get-url origin
+echo "   Expected: ${COMFY_REPO_URL}"
 cd "${cdir}"
 
 ##
