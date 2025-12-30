@@ -944,6 +944,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20251230: `pyvmml` uninstallation fix
 - 20251229: Update git origin to point to the new repository + renaming image name to be "CUDA major.minor" + added local caching to speed up the build process (and amount of download)
 - 20251228: fix a "FutureWarning" in `pynvml`
 - 20251227: (no new release) Updated `userscripts_dir` with Nunchaku 1.1.0 + Added `build-dgx` target to change the build target to `linux/arm64` (see [Issue 96](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/96))
