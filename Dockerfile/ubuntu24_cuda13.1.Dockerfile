@@ -1,5 +1,29 @@
 FROM nvidia/cuda:13.1.0-devel-ubuntu24.04
 
+ENV DEBIAN_FRONTEND=noninteractive
+
+ARG BUILD_APT_PROXY
+# Make use of apt-cacher-ng if available
+RUN if [ "A${BUILD_APT_PROXY:-}" != "A" ]; then \
+        echo "Using APT proxy: ${BUILD_APT_PROXY}"; \
+        printf 'Acquire::http::Proxy "%s";\n' "$BUILD_APT_PROXY" > /etc/apt/apt.conf.d/01proxy; \
+    fi \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates wget gnupg \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+ARG BUILD_ARCH=x86_64 
+# Install NVIDIA CUDA repo keyring (adds /usr/share/keyrings/cuda-archive-keyring.gpg) and remove duplicate CUDA repo definitions to avoid Signed-By conflicts, then add a single canonical CUDA repo entry using the keyring
+RUN wget -qO /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/${BUILD_ARCH}/cuda-keyring_1.1-1_all.deb \
+    && dpkg -i /tmp/cuda-keyring.deb \
+    && rm -f /tmp/cuda-keyring.deb \
+    && rm -f /etc/apt/sources.list.d/cuda*.list /etc/apt/sources.list.d/cuda*.sources \
+    && rm -f /etc/apt/sources.list.d/nvidia*.list /etc/apt/sources.list.d/nvidia*.sources \
+    && echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/${BUILD_ARCH}/ /" > /etc/apt/sources.list.d/cuda-ubuntu2404.list \
+    && apt-get update \
+    && apt-get clean
+
 # extended from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/13.0.2/ubuntu2404/devel/cudnn/Dockerfile
 # using https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/
 ENV NV_CUDNN_VERSION=9.17.1.4-1
@@ -14,15 +38,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ${NV_CUDNN_PACKAGE} \
     ${NV_CUDNN_PACKAGE_DEV} \
     ${NV_CUDNN_PACKAGE_DEV_HEADERS} \
-    && apt-mark hold ${NV_CUDNN_PACKAGE_NAME}
+    && apt-mark hold ${NV_CUDNN_PACKAGE_NAME} \
+    && apt-get clean
 
 ARG BASE_DOCKER_FROM=nvidia/cuda:13.1.0-devel-ubuntu24.04
-
 ##### Base
 
 # Install system packages
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update -y --fix-missing\
+RUN apt-get update -y --fix-missing \
   && apt-get install -y \
     apt-utils \
     locales \
@@ -38,7 +62,7 @@ ENV LC_ALL=C
 # Install needed packages
 RUN apt-get update -y --fix-missing \
   && apt-get upgrade -y \
-  && apt-get install -y \
+  && apt-get install -y --no-install-recommends \
     build-essential \
     python3-dev \
     unzip \
@@ -68,7 +92,7 @@ RUN apt-get update -y --fix-missing \
 
 # Add libEGL ICD loaders and libraries + Vulkan ICD loaders and libraries
 # Per https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/26
-RUN apt install -y libglvnd0 libglvnd-dev libegl1-mesa-dev libvulkan1 libvulkan-dev ffmpeg \
+RUN apt-get install -y --no-install-recommends libglvnd0 libglvnd-dev libegl1-mesa-dev libvulkan1 libvulkan-dev ffmpeg \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /usr/share/glvnd/egl_vendor.d \
@@ -115,6 +139,10 @@ ENV NVIDIA_DRIVER_CAPABILITIES="all"
 ENV NVIDIA_VISIBLE_DEVICES=all
 
 EXPOSE 8188
+
+# Remove APT proxy configuration and clean up APT downloaded files
+RUN rm -rf /var/lib/apt/lists/* /etc/apt/apt.conf.d/01proxy \
+    && apt-get clean
 
 ARG COMFYUI_NVIDIA_DOCKER_VERSION="unknown"
 LABEL comfyui-nvidia-docker-build=${COMFYUI_NVIDIA_DOCKER_VERSION}

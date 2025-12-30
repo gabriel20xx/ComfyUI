@@ -48,7 +48,7 @@ RUN apt-get update -y --fix-missing \
 
 # Add libEGL ICD loaders and libraries + Vulkan ICD loaders and libraries
 # Per https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/26
-RUN apt install -y libglvnd0 libglvnd-dev libegl1-mesa-dev libvulkan1 libvulkan-dev ffmpeg \
+RUN apt-get install -y --no-install-recommends libglvnd0 libglvnd-dev libegl1-mesa-dev libvulkan1 libvulkan-dev ffmpeg \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   && mkdir -p /usr/share/glvnd/egl_vendor.d \

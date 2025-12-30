@@ -5,8 +5,8 @@ SHELL := /bin/bash
 RELEASE_BUILD=true
 # apt-cacher-ng proxy
 # APT Cache: HTTP only, most content from Ubuntu will work, limit download of common packages between images/builds
-#BUILD_APT_PROXY=
-BUILD_APT_PROXY=http://10.0.0.15:3142
+BUILD_APT_PROXY=
+#BUILD_APT_PROXY=http://10.0.0.15:3142
 
 DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
