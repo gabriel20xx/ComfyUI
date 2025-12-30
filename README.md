@@ -189,6 +189,8 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.7.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#573-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
     - [5.7.4. run/pip\_cache and run/tmp](#574-runpip_cache-and-runtmp)
     - [5.7.5. Direct Cloud deployment: GPU Trader](#575-direct-cloud-deployment-gpu-trader)
+    - [5.7.6. Stability Matrix Integration](#576-stability-matrix-integration)
+    - [5.7.7. LoRA Manager Integration](#577-lora-manager-integration)
 - [6. Troubleshooting](#6-troubleshooting)
   - [6.1. Comfy crash](#61-comfy-crash)
   - [6.2. Virtual environment](#62-virtual-environment)
@@ -849,6 +851,13 @@ Those are temporary folders, and can be deleted when the container is stopped.
 
 If you are curious and want to learn more, check [this video](https://supercut.ai/share/gpu-trader/wb9biA0-r8H8dh1UKTL4k7).
 
+### 5.7.6. Stability Matrix Integration
+
+Please see [Stability Matrix Integration](https://github.com/mmartial/ComfyUI-Nvidia-Docker/wiki/Stability-Matrix-integration) (wiki page) for more information.
+
+### 5.7.7. LoRA Manager Integration
+
+Please see [LoRA Manager Integration](https://github.com/mmartial/ComfyUI-Nvidia-Docker/wiki/LoRA-Manager-Integration) (wiki page) for more information.
 
 # 6. Troubleshooting
 
