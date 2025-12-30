@@ -84,6 +84,7 @@ RUN apt-get update -y --fix-missing \
     libsm6 \
     libxext6 \
     libxrender1 \
+    xdg-utils \
   && apt-get clean
 
 # Add libEGL ICD loaders and libraries + Vulkan ICD loaders and libraries
