@@ -18,3 +18,4 @@ run/*
 basedir/*
 
 buildkitd.toml
+.env
