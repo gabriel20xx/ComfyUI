@@ -191,6 +191,9 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.7.5. Direct Cloud deployment: GPU Trader](#575-direct-cloud-deployment-gpu-trader)
     - [5.7.6. Stability Matrix Integration](#576-stability-matrix-integration)
     - [5.7.7. LoRA Manager Integration](#577-lora-manager-integration)
+    - [5.7.8. My other ComfyUI related projects](#578-my-other-comfyui-related-projects)
+      - [5.7.8.1. SD Wildcards](#5781-sd-wildcards)
+      - [5.7.8.2. "Combined Workflow"](#5782-combined-workflow)
 - [6. Troubleshooting](#6-troubleshooting)
   - [6.1. Comfy crash](#61-comfy-crash)
   - [6.2. Virtual environment](#62-virtual-environment)
@@ -858,6 +861,20 @@ Please see [Stability Matrix Integration](https://github.com/mmartial/ComfyUI-Nv
 ### 5.7.7. LoRA Manager Integration
 
 Please see [LoRA Manager Integration](https://github.com/mmartial/ComfyUI-Nvidia-Docker/wiki/LoRA-Manager-Integration) (wiki page) for more information.
+
+### 5.7.8. My other ComfyUI related projects
+
+#### 5.7.8.1. SD Wildcards
+
+For people that like to use wildcards in their generation, I have created a set of those.
+Please see [https://github.com/mmartial/StableDiffusion_Wildcards](https://github.com/mmartial/StableDiffusion_Wildcards) for details on how to use those and individual links to CivitAI for each of them.
+
+#### 5.7.8.2. "Combined Workflow"
+
+This was an attempt to provide a workflow to use the wildcards in ComfyUI.
+It has grown to be a full-fledged experiment that uses a set of custom nodes, can make use of Ollama to extend workflows and generates Illustrious/Flux/ZImage results.
+
+I have added those in the "SD Wildcard" repository, but recommend checking CivitAI at [https://civitai.com/models/2149956](https://civitai.com/models/2149956) for the published version.
 
 # 6. Troubleshooting
 
