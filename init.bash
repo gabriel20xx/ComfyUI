@@ -394,7 +394,13 @@ echo "== PIP3_CMD: \"${PIP3_CMD}\""
 
 
 ##
-COMFY_REPO_URL="https://github.com/Comfy-Org/ComfyUI.git"
+USE_NEW_REPO_URL=${USE_NEW_REPO_URL:-"false"}
+USE_NEW_REPO_URL=`lc "${USE_NEW_REPO_URL}"`
+COMFY_REPO_NEW_URL="https://github.com/Comfy-Org/ComfyUI.git"
+COMFY_REPO_URL="https://github.com/comfyanonymous/ComfyUI.git"
+if [ "A${USE_NEW_REPO_URL}" == "Atrue" ]; then
+  COMFY_REPO_URL=${COMFY_REPO_NEW_URL}
+fi
 it_dir="${COMFYUSER_DIR}/mnt"
 echo ""; echo "== Obtaining the latest version of ComfyUI (if folder not present)"
 cd $it_dir # ${COMFYUSER_DIR}/mnt -- stay here for the following checks/setups

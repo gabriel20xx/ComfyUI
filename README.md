@@ -970,6 +970,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20260104: reversing git origin to point to the old repository until the transition is completed
 - 20251230: `pyvmml` uninstallation fix
 - 20251229: Update git origin to point to the new repository + renaming image name to be "CUDA major.minor" + added local caching to speed up the build process (and amount of download)
 - 20251228: fix a "FutureWarning" in `pynvml`
