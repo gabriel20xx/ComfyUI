@@ -778,6 +778,7 @@ See [extras/FAQ.md] for additional FAQ topics, among which:
 ### 5.7.1. DGX Spark support
 
 The DGX Spark is an ARM64 based GPU, and as such, it requires a different image to be used.
+The base `FROM` comes from nvcr.io as such each end user will need to build their own image on their DGX Spark.
 
 Needed: `git`, `make`, `docker`.
 
@@ -795,10 +796,10 @@ make build-dgx
 make docker_tag_list
 ```
 
-The local image name will something like `comfyui-nvidia-docker:ubuntu24_cuda13.0`.
+The local image name will something like `comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`.
 
-Use this value in the `image:` section of the `docker-compose.yml` file; ie it should read: `image: comfyui-nvidia-docker:ubuntu24_cuda13.0`.
-Similaryly, if starting the container with `docker run`, it should read: `docker run ... mmartial/comfyui-nvidia-docker:ubuntu24_cuda13.0`.
+Use this value in the `image:` section of the `docker-compose.yml` file; ie it should read: `image: comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`.
+Similaryly, if starting the container with `docker run`, it should read: `docker run ... comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`.
 
 ### 5.7.2. Blackwell support
 
@@ -970,6 +971,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20260106: (no new release) Added new container for DGX Spark 
 - 20260104: reversing git origin to point to the old repository until the transition is completed
 - 20251230: `pyvmml` uninstallation fix
 - 20251229: Update git origin to point to the new repository + renaming image name to be "CUDA major.minor" + added local caching to speed up the build process (and amount of download)

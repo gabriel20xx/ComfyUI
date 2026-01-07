@@ -28,7 +28,8 @@ COMPONENTS_DIR=components
 DOCKERFILE_DIR=Dockerfile
 
 # Get the list of all the base- files in COMPONENTS_DIR
-DOCKER_ALL=$(shell ls -1 ${COMPONENTS_DIR}/base-* | perl -pe 's%^.+/base-%%' | perl -pe 's%\.Dockerfile%%' | sort)
+DOCKER_ALL=$(shell ls -1 ${COMPONENTS_DIR}/base-* | perl -pe 's%^.+/base-%%' | perl -pe 's%\.Dockerfile%%' | grep -v dgx | sort)
+DOCKER_ALL_DGX=$(shell ls -1 ${COMPONENTS_DIR}/base-* | perl -pe 's%^.+/base-%%' | perl -pe 's%\.Dockerfile%%' | grep dgx | sort)
 
 all:
 	@if [ `echo ${DOCKER_ALL} | wc -w` -eq 0 ]; then echo "No images candidates to build"; exit 1; fi
@@ -36,15 +37,30 @@ all:
 	@echo -n "      "; echo ${DOCKER_ALL} | sed -e 's/ /\n      /g'
 	@echo ""
 	@echo "build:          builds all"
-	@echo "build-dgx:      builds ubuntu24_cuda13.0 for DGX Spark (change BUILD_PLATFORM to linux/arm64)"
+	@echo "build-dgx:      builds for DGX Spark: ${DOCKER_ALL_DGX}"
 
 build: ${DOCKER_ALL}
 
-build-dgx:
-	@BUILD_PLATFORM=${DGX_PLATFORM} BUILD_ARCH=${DGX_ARCH} make ubuntu24_cuda13.0
+build-dgx: ${DOCKER_ALL_DGX}
 
 ${DOCKERFILE_DIR}:
 	@mkdir -p ${DOCKERFILE_DIR}
+
+${DOCKER_ALL_DGX}: ${DOCKERFILE_DIR}
+	@echo ""; echo ""; echo "===== Building ${COMFYUI_CONTAINER_NAME}:$@"
+	@$(eval DOCKERFILE_NAME="${DOCKERFILE_DIR}/$@.Dockerfile")
+	@cat ${COMPONENTS_DIR}/base-$@.Dockerfile > ${DOCKERFILE_NAME}
+	@cat ${COMPONENTS_DIR}/part1-common.Dockerfile >> ${DOCKERFILE_NAME}
+	@$(eval VAR_NT="${COMFYUI_CONTAINER_NAME}-$@")
+	@echo "-- Docker command to be run:"
+	@if [ -f buildkitd.toml ]; then \
+		BUILDX_ADD="--driver docker-container --config ./buildkitd.toml"; \
+	else \
+		BUILDX_ADD=""; \
+	fi
+	@echo "docker buildx ls | grep -q ${COMFYUI_CONTAINER_NAME} && echo \"builder already exists -- to delete it, use: docker buildx rm ${COMFYUI_CONTAINER_NAME}\" || docker buildx create --name ${COMFYUI_CONTAINER_NAME} $${BUILDX_ADD}"  > ${VAR_NT}.cmd
+	@echo "docker buildx use ${COMFYUI_CONTAINER_NAME} || exit 1" >> ${VAR_NT}.cmd
+	@TAG=$@ BUILD_ARCH=${DGX_ARCH} BUILD_PLATFORM=${DGX_PLATFORM} VAR_NT=${VAR_NT} DOCKERFILE_NAME=${DOCKERFILE_NAME} make build_common
 
 ${DOCKER_ALL}: ${DOCKERFILE_DIR}
 	@echo ""; echo ""; echo "===== Building ${COMFYUI_CONTAINER_NAME}:$@"
@@ -64,12 +80,15 @@ ${DOCKER_ALL}: ${DOCKERFILE_DIR}
 	else \
 		echo "docker buildx use default || exit 1" > ${VAR_NT}.cmd; \
 	fi
-	@echo "BUILDX_EXPERIMENTAL=1 ${DOCKER_PRE} docker buildx debug --on=error build --progress plain --platform $${BUILD_PLATFORM:-${DEFAULT_PLATFORM}} ${DOCKER_BUILD_ARGS} \\" >> ${VAR_NT}.cmd
+	@TAG=$@BUILD_ARCH=${DEFAULT_ARCH} BUILD_PLATFORM=${DEFAULT_PLATFORM} VAR_NT=${VAR_NT} DOCKERFILE_NAME=${DOCKERFILE_NAME} make build_common
+
+build_common:
+	@echo "BUILDX_EXPERIMENTAL=1 ${DOCKER_PRE} docker buildx debug --on=error build --progress plain --platform $${BUILD_PLATFORM} ${DOCKER_BUILD_ARGS} \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg COMFYUI_NVIDIA_DOCKER_VERSION=\"${COMFYUI_NVIDIA_DOCKER_VERSION}\" \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg BUILD_BASE=\"$@\" \\" >> ${VAR_NT}.cmd
-	@echo "  --build-arg BUILD_ARCH=\"$${BUILD_ARCH:-${DEFAULT_ARCH}}\" \\" >> ${VAR_NT}.cmd
+	@echo "  --build-arg BUILD_ARCH=\"$${BUILD_ARCH}\" \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg BUILD_APT_PROXY=\"${BUILD_APT_PROXY}\" \\" >> ${VAR_NT}.cmd
-	@echo "  --tag=\"${COMFYUI_CONTAINER_NAME}:$@\" \\" >> ${VAR_NT}.cmd
+	@echo "  --tag=\"${COMFYUI_CONTAINER_NAME}:$${TAG}\" \\" >> ${VAR_NT}.cmd
 	@echo "  -f ${DOCKERFILE_NAME} \\" >> ${VAR_NT}.cmd
 	@echo "  --load \\" >> ${VAR_NT}.cmd
 	@echo "  ." >> ${VAR_NT}.cmd
