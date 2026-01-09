@@ -98,6 +98,10 @@ RUN it="/etc/build_base.txt"; echo ${BUILD_BASE} > $it && chmod 555 $it
 COPY --chmod=555 init.bash /comfyui-nvidia_init.bash
 COPY --chmod=555 config.sh /comfyui-nvidia_config.sh
 
+# If the repo was checked out with CRLF line endings (common on Windows), bash will fail with "$'\r': command not found".
+# Normalize to LF inside the image so runtime scripts are reliable.
+RUN sed -i 's/\r$//' /comfyui-nvidia_init.bash /comfyui-nvidia_config.sh
+
 ##### ComfyUI preparation
 # Every sudo group user does not need a password
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
