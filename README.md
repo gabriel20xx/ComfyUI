@@ -180,6 +180,7 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.4.9. USE\_PIPUPGRADE](#549-use_pipupgrade)
     - [5.4.10. DISABLE\_UPGRADES](#5410-disable_upgrades)
     - [5.4.11. PREINSTALL\_TORCH and PREINSTALL\_TORCH\_CMD](#5411-preinstall_torch-and-preinstall_torch_cmd)
+    - [5.4.12. COMFY\_CUDA\_STABILITY and COMFY\_CUDA\_DEBUG](#5412-comfy_cuda_stability-and-comfy_cuda_debug)
   - [5.5. ComfyUI Manager \& Security levels](#55-comfyui-manager--security-levels)
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
@@ -725,6 +726,27 @@ The `PREINSTALL_TORCH_CMD` environment variable can be used to override the torc
 
 Please note that the `PREINSTALL_TORCH_CMD` variable is not added to the Unraid template, and must be manually added if used.
 
+### 5.4.12. COMFY_CUDA_STABILITY and COMFY_CUDA_DEBUG
+
+The container can apply a few conservative CUDA-related environment defaults to reduce the likelihood of crashes that look like:
+- `terminate called after throwing an instance of 'c10::AcceleratorError'`
+- `CUDA error: unspecified launch failure`
+- `cudaErrorLaunchFailure`
+- `GPU is lost`
+
+This is most often triggered by custom nodes that load CUDA kernels from multiple stacks (e.g. PyTorch + `llama_cpp_python` / `ggml`).
+
+- `COMFY_CUDA_STABILITY` (default: `true`)
+  - When enabled, the init script sets the following variables *only if you did not already set them*:
+    - `CUDA_MODULE_LOADING=LAZY`
+    - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+    - `GGML_CUDA_DISABLE_FLASH_ATTN=1`
+  - You can disable this behavior with `COMFY_CUDA_STABILITY=false`.
+
+- `COMFY_CUDA_DEBUG` (default: `false`)
+  - When enabled, sets `CUDA_LAUNCH_BLOCKING=1` and `TORCH_SHOW_CPP_STACKTRACES=1` to make CUDA errors easier to attribute.
+  - This is slower and intended for debugging.
+
 ## 5.5. ComfyUI Manager & Security levels
 
 [ComfyUI Manager](https://github.com/ltdrdata/ComfyUI-Manager/) is installed and available in the container.
@@ -885,6 +907,11 @@ It is possible that despite the container starting and setting itself up correct
 You will recognize this in the Docker log as `!! ERROR: ComfyUI failed or exited with an error`.
 The log might contain the reason for the crash, but you can also look up the ComfyUI logs in the container to get more details. Those are in `basedir/user/*.log`.
 If Comfy crashes after it succesfully performs its internal checks (starts (`Starting server`) it is likely a Comfy/custom node error and not related to the container itself.
+
+If you see `cudaErrorLaunchFailure` / `unspecified launch failure` and/or `GPU is lost`, try:
+- making sure you are using a container tag compatible with your host driver (see the CUDA version notes earlier in this README)
+- setting `COMFY_CUDA_STABILITY=true` (default) or explicitly setting `GGML_CUDA_DISABLE_FLASH_ATTN=1`
+- for debugging only, set `COMFY_CUDA_DEBUG=true` to get a more actionable stacktrace
 
 ## 6.2. Virtual environment
 

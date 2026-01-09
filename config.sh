@@ -48,6 +48,16 @@ export ENV_OBFUSCATE_PART="TOKEN API KEY"
 # PREINSTALL_TORCH_CMD: when PREINSTALL_TORCH is set to true, will use the command specified in this variable to install torch
 #export PREINSTALL_TORCH_CMD="pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126"
 
+# CUDA / ggml stability knobs
+# - COMFY_CUDA_STABILITY enables conservative defaults to avoid some ggml/llama.cpp CUDA crashes.
+# - COMFY_CUDA_DEBUG enables more synchronous CUDA error reporting (slower).
+#export COMFY_CUDA_STABILITY="true"
+#export COMFY_CUDA_DEBUG="false"
+# Optional overrides (only set if you know you need them):
+#export GGML_CUDA_DISABLE_FLASH_ATTN=1
+#export CUDA_MODULE_LOADING=LAZY
+#export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+
 ## NVIDIA specific adds
 #export NVIDIA_VISIBLE_DEVICES=all
 #export NVIDIA_DRIVER_CAPABILITIES=all

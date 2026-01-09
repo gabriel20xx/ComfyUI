@@ -938,6 +938,31 @@ run_userscript $it "chmod"
 it=/tmp/comfy_env_final.txt
 save_env $it
 
+# CUDA / ggml stability knobs
+# Some ComfyUI workflows load CUDA kernels from multiple stacks (PyTorch + llama.cpp/ggml via llama_cpp_python).
+# On some driver/GPU combos, ggml Flash-Attn kernels can cause `cudaErrorLaunchFailure` / "GPU is lost" crashes.
+# We apply conservative defaults unless the user explicitly overrides them.
+COMFY_CUDA_STABILITY=${COMFY_CUDA_STABILITY:-"true"}
+COMFY_CUDA_STABILITY=`lc "${COMFY_CUDA_STABILITY}"`
+if [ "A${COMFY_CUDA_STABILITY}" == "Atrue" ]; then
+  if [ -z "${CUDA_MODULE_LOADING+x}" ]; then
+    export CUDA_MODULE_LOADING=LAZY
+  fi
+  if [ -z "${PYTORCH_CUDA_ALLOC_CONF+x}" ]; then
+    export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
+  fi
+  if [ -z "${GGML_CUDA_DISABLE_FLASH_ATTN+x}" ]; then
+    export GGML_CUDA_DISABLE_FLASH_ATTN=1
+  fi
+fi
+
+COMFY_CUDA_DEBUG=${COMFY_CUDA_DEBUG:-"false"}
+COMFY_CUDA_DEBUG=`lc "${COMFY_CUDA_DEBUG}"`
+if [ "A${COMFY_CUDA_DEBUG}" == "Atrue" ]; then
+  export CUDA_LAUNCH_BLOCKING=1
+  export TORCH_SHOW_CPP_STACKTRACES=1
+fi
+
 # Run socat if requested
 if [ "A${USE_SOCAT}" == "Atrue" ]; then
   echo ""; echo "==================="
