@@ -133,7 +133,10 @@ BUILD_BASE_FILE=$it
 BUILD_BASE_SPECIAL="ubuntu22_cuda12.3.2" # this is a special value: when this feature was introduced, will be used to mark exisitng venv if the marker is not present
 echo "-- BUILD_BASE: \"${BUILD_BASE}\""
 if test -z ${BUILD_BASE}; then error_exit "Empty BUILD_BASE variable"; fi
-if [ "A${BUILD_BASE}" == "Aunknown" ]; then error_exit "Invalid BUILD_BASE value"; fi
+if [ "A${BUILD_BASE}" == "Aunknown" ]; then
+  echo "!! WARNING: BUILD_BASE is 'unknown' (likely a local build without --build-arg BUILD_BASE). Defaulting to 'local'."
+  BUILD_BASE="local"
+fi
 DGX_BUILD=$(echo "${BUILD_BASE}" | grep -q "dgx" && echo "true" || echo "false")
 BUILD_BASE=$(echo "${BUILD_BASE}" | sed 's/-dgx//g')
 if [ "A${DGX_BUILD}" == "Atrue" ]; then echo "-- DGX_BUILD: \"${DGX_BUILD}\""; fi
