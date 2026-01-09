@@ -127,19 +127,53 @@ if test -z ${COMFYUSER_DIR}; then error_exit "Empty COMFYUSER_DIR variable"; fi
 
 # extract build base information
 it=/etc/build_base.txt
-if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
-BUILD_BASE=`cat $it`
-BUILD_BASE_FILE=$it
 BUILD_BASE_SPECIAL="ubuntu22_cuda12.3.2" # this is a special value: when this feature was introduced, will be used to mark exisitng venv if the marker is not present
-echo "-- BUILD_BASE: \"${BUILD_BASE}\""
-if test -z ${BUILD_BASE}; then error_exit "Empty BUILD_BASE variable"; fi
-if [ "A${BUILD_BASE}" == "Aunknown" ]; then
-  echo "!! WARNING: BUILD_BASE is 'unknown' (likely a local build without --build-arg BUILD_BASE). Defaulting to 'local'."
-  BUILD_BASE="local"
+
+# Support overriding BUILD_BASE at runtime (docker run -e BUILD_BASE=...)
+# If not set, read it from the image marker file created at build time.
+if [ -n "${BUILD_BASE+x}" ] && [ -n "${BUILD_BASE}" ]; then
+  echo "-- BUILD_BASE provided via environment: \"${BUILD_BASE}\""
+else
+  if [ ! -f $it ]; then error_exit "$it missing, exiting"; fi
+  BUILD_BASE=`cat $it`
 fi
+
+echo "-- BUILD_BASE (raw): \"${BUILD_BASE}\""
+if test -z ${BUILD_BASE}; then error_exit "Empty BUILD_BASE variable"; fi
+
+# If BUILD_BASE is unknown (common with local builds), attempt to derive it from /etc/image_base.txt
+if [ "A${BUILD_BASE}" == "Aunknown" ]; then
+  echo "!! WARNING: BUILD_BASE is 'unknown' (likely a local build without --build-arg BUILD_BASE). Attempting to derive from /etc/image_base.txt."
+  it_img=/etc/image_base.txt
+  if [ -f "${it_img}" ]; then
+    docker_from=$(grep '^DOCKER_FROM:' "${it_img}" | awk '{print $2}')
+    tag="${docker_from##*:}"
+    if [[ "${tag}" =~ ^([0-9]+)\.([0-9]+) ]]; then
+      cuda_major_derived="${BASH_REMATCH[1]}"
+      cuda_minor_derived="${BASH_REMATCH[2]}"
+      if [[ "${tag}" =~ ubuntu([0-9]+)\. ]]; then
+        ubuntu_derived="${BASH_REMATCH[1]}"
+        BUILD_BASE="ubuntu${ubuntu_derived}_cuda${cuda_major_derived}.${cuda_minor_derived}"
+        echo "-- Derived BUILD_BASE: \"${BUILD_BASE}\" (from ${docker_from})"
+      fi
+    fi
+  fi
+fi
+
 DGX_BUILD=$(echo "${BUILD_BASE}" | grep -q "dgx" && echo "true" || echo "false")
 BUILD_BASE=$(echo "${BUILD_BASE}" | sed 's/-dgx//g')
 if [ "A${DGX_BUILD}" == "Atrue" ]; then echo "-- DGX_BUILD: \"${DGX_BUILD}\""; fi
+
+# BUILD_BASE must include ubuntu/cuda so we can choose the right torch wheel later.
+if [[ "${BUILD_BASE}" != *"cuda"* ]] || [[ "${BUILD_BASE}" != ubuntu* ]]; then
+  error_exit "Invalid BUILD_BASE value (${BUILD_BASE}). Use something like 'ubuntu24_cuda13.0' (or set it at build time with --build-arg BUILD_BASE=...)."
+fi
+
+# Ensure BUILD_BASE_FILE content matches the normalized BUILD_BASE for venv reuse checks.
+BUILD_BASE_FILE=$itdir/build_base_normalized.txt
+write_worldtmpfile "${BUILD_BASE_FILE}" "${BUILD_BASE}"
+chmod 555 "${BUILD_BASE_FILE}" 2>/dev/null || true
+echo "-- BUILD_BASE (normalized): \"${BUILD_BASE}\""
 
 # Check user id and group id
 new_gid=`id -g`
