@@ -397,7 +397,7 @@ echo "== PIP3_CMD: \"${PIP3_CMD}\""
 
 
 ##
-USE_NEW_REPO_URL=${USE_NEW_REPO_URL:-"false"}
+USE_NEW_REPO_URL=${USE_NEW_REPO_URL:-"true"}
 USE_NEW_REPO_URL=`lc "${USE_NEW_REPO_URL}"`
 COMFY_REPO_NEW_URL="https://github.com/Comfy-Org/ComfyUI.git"
 COMFY_REPO_URL="https://github.com/comfyanonymous/ComfyUI.git"

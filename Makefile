@@ -16,7 +16,7 @@ DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
 DOCKER_BUILD_ARGS=
 
-COMFYUI_NVIDIA_DOCKER_VERSION=20260104
+COMFYUI_NVIDIA_DOCKER_VERSION=20260110
 DEFAULT_PLATFORM=linux/amd64
 DEFAULT_ARCH=x86_64
 DGX_PLATFORM=linux/arm64
@@ -80,12 +80,12 @@ ${DOCKER_ALL}: ${DOCKERFILE_DIR}
 	else \
 		echo "docker buildx use default || exit 1" > ${VAR_NT}.cmd; \
 	fi
-	@TAG=$@BUILD_ARCH=${DEFAULT_ARCH} BUILD_PLATFORM=${DEFAULT_PLATFORM} VAR_NT=${VAR_NT} DOCKERFILE_NAME=${DOCKERFILE_NAME} make build_common
+	@TAG=$@ BUILD_ARCH=${DEFAULT_ARCH} BUILD_PLATFORM=${DEFAULT_PLATFORM} VAR_NT=${VAR_NT} DOCKERFILE_NAME=${DOCKERFILE_NAME} make build_common
 
 build_common:
 	@echo "BUILDX_EXPERIMENTAL=1 ${DOCKER_PRE} docker buildx debug --on=error build --progress plain --platform $${BUILD_PLATFORM} ${DOCKER_BUILD_ARGS} \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg COMFYUI_NVIDIA_DOCKER_VERSION=\"${COMFYUI_NVIDIA_DOCKER_VERSION}\" \\" >> ${VAR_NT}.cmd
-	@echo "  --build-arg BUILD_BASE=\"$@\" \\" >> ${VAR_NT}.cmd
+	@echo "  --build-arg BUILD_BASE=\"$${TAG}\" \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg BUILD_ARCH=\"$${BUILD_ARCH}\" \\" >> ${VAR_NT}.cmd
 	@echo "  --build-arg BUILD_APT_PROXY=\"${BUILD_APT_PROXY}\" \\" >> ${VAR_NT}.cmd
 	@echo "  --tag=\"${COMFYUI_CONTAINER_NAME}:$${TAG}\" \\" >> ${VAR_NT}.cmd
