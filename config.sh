@@ -53,6 +53,9 @@ export ENV_OBFUSCATE_PART="TOKEN API KEY"
 # - COMFY_CUDA_DEBUG enables more synchronous CUDA error reporting (slower).
 #export COMFY_CUDA_STABILITY="true"
 #export COMFY_CUDA_DEBUG="false"
+# If you hit `cudaErrorLaunchFailure` / "GPU is lost" and the stack mentions CUDAMallocAsyncAllocator,
+# you can try disabling cudaMallocAsync (forces torch allocator backend to cudaMalloc):
+#export COMFY_DISABLE_CUDAMALLOCASYNC="true"
 # Optional overrides (only set if you know you need them):
 #export GGML_CUDA_DISABLE_FLASH_ATTN=1
 #export CUDA_MODULE_LOADING=LAZY

@@ -911,7 +911,14 @@ If Comfy crashes after it succesfully performs its internal checks (starts (`Sta
 If you see `cudaErrorLaunchFailure` / `unspecified launch failure` and/or `GPU is lost`, try:
 - making sure you are using a container tag compatible with your host driver (see the CUDA version notes earlier in this README)
 - setting `COMFY_CUDA_STABILITY=true` (default) or explicitly setting `GGML_CUDA_DISABLE_FLASH_ATTN=1`
+- if running on Windows/WSL2, ensure WSL GPU libraries are available in-container (see the wiki). You can also use [compose-wsl2.yaml](compose-wsl2.yaml) as an override.
+- reducing peak VRAM (for example `COMFY_CMDLINE_EXTRA="--reserve-vram 2.0 --lowvram"`) to avoid driver resets under extreme memory pressure
+- if the stacktrace mentions `CUDAMallocAsyncAllocator` (PyTorch), try `COMFY_DISABLE_CUDAMALLOCASYNC=true` and/or ComfyUI's `--cuda-malloc` CLI flag
 - for debugging only, set `COMFY_CUDA_DEBUG=true` to get a more actionable stacktrace
+
+If you see `Unable to determine the device handle for GPU0 ... Unknown Error` (from `nvidia-smi`/NVML), this typically indicates the GPU driver/runtime has become unhealthy (often after a reset or a hard fault).
+- On Windows/WSL2, a full WSL restart often resolves it: `wsl --shutdown` then restart Docker Desktop.
+- If it persists, update the NVIDIA driver and verify `nvidia-smi` works in WSL2 outside the container.
 
 ## 6.2. Virtual environment
 

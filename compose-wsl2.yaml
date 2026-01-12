@@ -1,0 +1,11 @@
+# Docker Compose override for Windows + WSL2 GPU passthrough
+# Usage:
+#   docker compose -f compose.yaml -f compose-wsl2.yaml up -d
+#
+# This mounts WSL's GPU libraries into the container and sets LD_LIBRARY_PATH accordingly.
+services:
+  comfyui-nvidia:
+    volumes:
+      - /usr/lib/wsl:/usr/lib/wsl
+    environment:
+      - LD_LIBRARY_PATH=/usr/lib/wsl/lib

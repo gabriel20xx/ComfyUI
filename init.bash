@@ -952,6 +952,19 @@ if [ "A${COMFY_CUDA_STABILITY}" == "Atrue" ]; then
   if [ -z "${CUDA_MODULE_LOADING+x}" ]; then
     export CUDA_MODULE_LOADING=LAZY
   fi
+  # Optional: disable cudaMallocAsync allocator, which can be unstable on some driver/runtime combos
+  # (can manifest as `cudaErrorLaunchFailure`, "GPU is lost", or crashes during allocator free).
+  COMFY_DISABLE_CUDAMALLOCASYNC=${COMFY_DISABLE_CUDAMALLOCASYNC:-"false"}
+  COMFY_DISABLE_CUDAMALLOCASYNC=`lc "${COMFY_DISABLE_CUDAMALLOCASYNC}"`
+  if [ "A${COMFY_DISABLE_CUDAMALLOCASYNC}" == "Atrue" ]; then
+    if [ -z "${PYTORCH_CUDA_ALLOC_CONF+x}" ]; then
+      export PYTORCH_CUDA_ALLOC_CONF="backend:cudaMalloc,expandable_segments:True"
+    else
+      if [[ "${PYTORCH_CUDA_ALLOC_CONF}" != *"backend:"* ]]; then
+        export PYTORCH_CUDA_ALLOC_CONF="backend:cudaMalloc,${PYTORCH_CUDA_ALLOC_CONF}"
+      fi
+    fi
+  fi
   if [ -z "${PYTORCH_CUDA_ALLOC_CONF+x}" ]; then
     export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
   fi
