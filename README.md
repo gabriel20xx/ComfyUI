@@ -998,6 +998,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20260110: Fix [Issue 106](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/106) + Updating git origin to point to the new repository at [Comfy-Org/ComfyUI](https://github.com/Comfy-Org/ComfyUI)
 - 20260106: (no new release) Added new container for DGX Spark 
 - 20260104: reversing git origin to point to the old repository until the transition is completed
 - 20251230: `pyvmml` uninstallation fix
