@@ -33,6 +33,9 @@ if [ "A$use_uv" == "Atrue" ]; then
 else
   echo "== Using pip"
 fi
-${PIP3_CMD} onnxruntime-gpu || error_exit "Failed to install onnxruntime-gpu"
+
+CMD="${PIP3_CMD} onnxruntime-gpu"
+echo "CMD: \"${CMD}\""
+${CMD} || error_exit "Failed to install onnxruntime-gpu"
 
 exit 0

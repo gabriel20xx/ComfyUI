@@ -87,6 +87,8 @@ else
   echo "== Using pip"
 fi
 
-EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc ${PIP3_CMD} ${PIP3_XTRA} . --no-build-isolation || error_exit "Failed to install SageAttention"
+CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS='--threads $num_threads' MAX_JOBS=$numproc ${PIP3_CMD} ${PIP3_XTRA} . --no-build-isolation"
+echo "CMD: \"${CMD}\""
+${CMD} || error_exit "Failed to install SageAttention"
 
 exit 0
