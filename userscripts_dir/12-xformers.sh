@@ -57,6 +57,8 @@ must_build=false
 if pip3 show torch &>/dev/null; then
   torch_version=$(pip3 show torch | grep Version | awk '{print $2}' | cut -d'.' -f1-2)
   if [ "A$torch_version" == "A2.10" ]; then must_build=true; fi
+else
+  error_exit "torch not installed, canceling run"
 fi
 
 echo "PyTorch version: $torch_version"
@@ -71,12 +73,18 @@ if [ "A$must_build" == "Atrue" ]; then
   if [ ! -d ${BUILD_BASE} ]; then error_exit "${BUILD_BASE} not found"; fi
   cd ${BUILD_BASE}
 
-  dd="/comfy/mnt/src/${BUILD_BASE}/xformers-git"
+  if [ -z "$torch_version" ]; then error_exit "error getting torch version, canceling run"; fi
+  td="Torch_${torch_version}"
+  if [ ! -d $td ]; then mkdir $td; fi
+  cd $td
+
+  dd="/comfy/mnt/src/${BUILD_BASE}/$td/xformers-git"
   if [ -d $dd ]; then
     echo "xformers source already present, you must delete $dd to force reinstallation"
     exit 0
   fi
-  mkdir -p $dd
+  tdd="$dd-`date +%Y%m%d%H%M%S`"
+  mkdir -p $tdd
 
   # we are not downloading the source code, we are building from git, as described in the xformers documentation
   if [ "A$use_uv" == "Atrue" ]; then
@@ -88,8 +96,13 @@ if [ "A$must_build" == "Atrue" ]; then
     echo " - TORCH_INDEX_URL: $TORCH_INDEX_URL"
   fi
 
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc ${PIP3_CMD} xformers --no-build-isolation git+https://github.com/facebookresearch/xformers.git@main#egg=xformers || error_exit "Failed to install xformers"
-  echo "++ xformers installed successfully"
+  CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS=\"--threads $num_threads\" MAX_JOBS=$numproc ${PIP3_CMD} xformers --no-build-isolation git+https://github.com/facebookresearch/xformers.git@main#egg=xformers"
+  echo "CMD: \"${CMD}\""
+  echo $CMD > build.cmd; chmod +x build.cmd
+  script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build xformers"
+  cd ..
+  mv $tdd $dd
+  echo "++ xformers built successfully"
   exit 0
 fi
 
