@@ -25,14 +25,14 @@ uv="/comfy/mnt/venv/bin/uv"
 uv_cache="/comfy/mnt/uv_cache"
 if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
 
+echo "== PIP3_CMD: \"${PIP3_CMD}\""
 if [ "A$use_uv" == "Atrue" ]; then
   echo "== Using uv"
   echo " - uv: $uv"
   echo " - uv_cache: $uv_cache"
-  uv pip install onnxruntime-gpu || error_exit "Failed to uv install build dependencies"
 else
   echo "== Using pip"
-  pip3 install onnxruntime-gpu || error_exit "Failed to install build dependencies"
 fi
+${PIP3_CMD} onnxruntime-gpu || error_exit "Failed to install onnxruntime-gpu"
 
 exit 0

@@ -70,6 +70,7 @@ git clone \
   https://github.com/nunchaku-tech/nunchaku.git \
   $dd
 
+echo "PIP3_CMD: \"${PIP3_CMD}\""
 # Compile Nunchaku
 # Heavy compilation parallelization: lower the number manually if needed
 cd $dd
@@ -86,10 +87,10 @@ if [ "A$use_uv" == "Atrue" ]; then
   echo "== Using uv"
   echo " - uv: $uv"
   echo " - uv_cache: $uv_cache"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc uv pip install -e ".[dev,docs]" || error_exit "Failed to install Nunchaku"
 else
   echo "== Using pip"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc pip3 install -e ".[dev,docs]" || error_exit "Failed to install Nunchaku"
 fi
+
+EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc ${PIP3_CMD} -e ".[dev,docs]" --no-build-isolation || error_exit "Failed to install Nunchaku"
 
 exit 0

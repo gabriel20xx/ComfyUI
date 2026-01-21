@@ -66,6 +66,7 @@ git clone \
   --recurse-submodules https://github.com/thu-ml/SageAttention.git \
   $dd
 
+echo "PIP3_CMD: \"${PIP3_CMD}\""
 ## Compile SageAttention
 # Heavy compilation parallelization: lower the number manually if needed
 cd $dd
@@ -82,10 +83,10 @@ if [ "A$use_uv" == "Atrue" ]; then
   echo "== Using uv"
   echo " - uv: $uv"
   echo " - uv_cache: $uv_cache"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc uv run --active python3 setup.py install || error_exit "Failed to install SageAttention"
 else
   echo "== Using pip"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc python3 setup.py install || error_exit "Failed to install SageAttention"
 fi
+
+EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc ${PIP3_CMD} ${PIP3_XTRA} . --no-build-isolation || error_exit "Failed to install SageAttention"
 
 exit 0
