@@ -55,24 +55,37 @@ mkdir -p ${BUILD_BASE}
 if [ ! -d ${BUILD_BASE} ]; then error_exit "${BUILD_BASE} not found"; fi
 cd ${BUILD_BASE}
 
-dd="/comfy/mnt/src/${BUILD_BASE}/nunchaku-${nunchaku_version}"
+if pip3 show torch &>/dev/null; then
+  torch_version=$(pip3 show torch | grep Version | awk '{print $2}' | cut -d'.' -f1-2)
+else 
+  error_exit "torch not installed, canceling run"
+fi
+
+if [ -z "$torch_version" ]; then error_exit "error getting torch version, canceling run"; fi
+td="Torch_${torch_version}"
+if [ ! -d $td ]; then mkdir $td; fi
+cd $td
+
+dd="/comfy/mnt/src/${BUILD_BASE}/$td/nunchaku-${nunchaku_version}"
 if [ -d $dd ]; then
   echo "Nunchaku source already present, you must delete it at $dd to force reinstallation"
   exit 0
 fi
 
 echo "Compiling Nunchaku"
+tdd="$dd-`date +%Y%m%d%H%M%S`"
 
 ## Clone Nunchaku
 git clone \
   --branch $nunchaku_version \
   --recurse-submodules \
   https://github.com/nunchaku-tech/nunchaku.git \
-  $dd
+  $tdd
 
+echo "PIP3_CMD: \"${PIP3_CMD}\""
 # Compile Nunchaku
 # Heavy compilation parallelization: lower the number manually if needed
-cd $dd
+cd $tdd
 numproc=$(nproc --all)
 echo " - numproc: $numproc"
 ext_parallel=$(( numproc / 2 ))
@@ -86,10 +99,15 @@ if [ "A$use_uv" == "Atrue" ]; then
   echo "== Using uv"
   echo " - uv: $uv"
   echo " - uv_cache: $uv_cache"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc uv pip install -e ".[dev,docs]" || error_exit "Failed to install Nunchaku"
 else
   echo "== Using pip"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc pip3 install -e ".[dev,docs]" || error_exit "Failed to install Nunchaku"
 fi
 
+CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS=\"--threads $num_threads\" MAX_JOBS=$numproc ${PIP3_CMD} -e \".[dev,docs]\" --no-build-isolation"
+echo "CMD: \"${CMD}\""
+echo $CMD > build.cmd; chmod +x build.cmd
+script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build Nunchaku"
+
+mv $tdd $dd
+echo "++ Nunchaku built successfully"
 exit 0
