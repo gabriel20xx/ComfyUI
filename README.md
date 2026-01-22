@@ -694,12 +694,13 @@ The specific version of torch, torchvision and torchaudio must be provided and w
 **Important**: When using this option, it is the end user's responsibility to ensure that the specified version is compatible with the installed CUDA version. Failure to do so may result in the container failing to start.
 
 Example: `TORCH_LOCK=torch==2.9.1+cu130 torchvision==0.24.1+cu130 torchaudio==2.9.1+cu130`
-force PyTorch to 2.9.1 with CUDA 13.0 support; the values of torchvision and torchaudio, as well as the CUDA backend must be provided.
+will force PyTorch to 2.9.1 with CUDA 13.0 support; the values of torchvision and torchaudio, as well as the CUDA backend must be provided.
 
-This will create a `run/torch_lock` file (ie in the user's created `run` folder) with the content of the `TORCH_LOCK` environment variable. This file will be used by the `PIP3_CMD` environmennt variables within the `init.bash` to make sure that the specified versions of torch, torchvision and torchaudio follow the `--constraint /tmp/torch_lock` flag.
-`PIP3_CMD` is also used by the `userscript_dir` scripts files.
+This will create a `/comfy/mnt/torch_lock.txt` file (ie in the user's `run` folder) with the adapted content of the `TORCH_LOCK` environment variable. This file will be used by the `PIP3_CMD` environmennt variables within the `init.bash` to make sure that the specified versions of torch, torchvision and torchaudio follow the `--constraint /comfy/mnt/torch_lock.txt` flag.
+That same `PIP3_CMD` is also used by the `userscript_dir` files.
+If you manually install python packages, you should use the copy and use the value of the `PIP3_CMD` environment variable (printed by the `init.bash` script during the container's run) to make sure that the specified versions of torch, torchvision and torchaudio are not modified. At minumum, add the `--constraint /comfy/mnt/torch_lock.txt` flag to the `pip install` command.
 
-If you decide to remove the `TORCH_LOCK` environment variable, you should also remove the `run/torch_lock` file.
+When you decide to remove the `TORCH_LOCK` environment variable, it is recommended to also remove the `torch_lock.txt` file in the `run` folder.
 
 ### 5.4.8. USE_SOCAT
 
@@ -1000,7 +1001,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
-- 20260120: Added `TORCH_LOCK` environment variable to lock torch components to a specific version
+- 20260121: Added `TORCH_LOCK` environment variable to manually lock torch components to a specific version
 - 20260110: Fix [Issue 106](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/106) + Updating git origin to point to the new repository at [Comfy-Org/ComfyUI](https://github.com/Comfy-Org/ComfyUI)
 - 20260106: (no new release) Added new container for DGX Spark 
 - 20260104: reversing git origin to point to the old repository until the transition is completed
