@@ -103,9 +103,13 @@ else
   echo "== Using pip"
 fi
 
+# Install Cython (needed by insightface build)
+echo "== Installing Cython (build dependency for insightface)"
+${PIP3_CMD} Cython || error_exit "Failed to install Cython"
+
 CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS=\"--threads $num_threads\" MAX_JOBS=$numproc ${PIP3_CMD} -e \".[dev,docs]\" --no-build-isolation"
 echo "CMD: \"${CMD}\""
-echo $CMD > build.cmd; chmod +x build.cmd
+echo $CMD > $tdd/build.cmd; chmod +x $tdd/build.cmd
 script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build Nunchaku"
 
 mv $tdd $dd

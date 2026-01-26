@@ -87,6 +87,16 @@ if [ "A$must_build" == "Atrue" ]; then
   mkdir -p $tdd
 
   # we are not downloading the source code, we are building from git, as described in the xformers documentation
+  # Set build parallelism based on available CPU cores (matching SageAttention/nunchaku pattern)
+  numproc=$(nproc --all)
+  echo " - numproc: $numproc"
+  ext_parallel=$(( numproc / 2 ))
+  if [ "$ext_parallel" -lt 1 ]; then ext_parallel=1; fi
+  echo " - ext_parallel: $ext_parallel"
+  num_threads=$(( numproc / 2 ))
+  if [ "$num_threads" -lt 1 ]; then num_threads=1; fi
+  echo " - num_threads: $num_threads"
+
   if [ "A$use_uv" == "Atrue" ]; then
     echo "== Using uv"
     echo " - uv: $uv"
@@ -98,7 +108,7 @@ if [ "A$must_build" == "Atrue" ]; then
 
   CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS=\"--threads $num_threads\" MAX_JOBS=$numproc ${PIP3_CMD} xformers --no-build-isolation git+https://github.com/facebookresearch/xformers.git@main#egg=xformers"
   echo "CMD: \"${CMD}\""
-  echo $CMD > build.cmd; chmod +x build.cmd
+  echo $CMD > $tdd/build.cmd; chmod +x $tdd/build.cmd
   script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build xformers"
   cd ..
   mv $tdd $dd

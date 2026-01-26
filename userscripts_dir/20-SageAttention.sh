@@ -101,7 +101,7 @@ fi
 
 CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS=\"--threads $num_threads\" MAX_JOBS=$numproc ${PIP3_CMD} ${PIP3_XTRA} . --no-build-isolation"
 echo "CMD: \"${CMD}\""
-echo $CMD > build.cmd; chmod +x build.cmd
+echo $CMD > $tdd/build.cmd; chmod +x $tdd/build.cmd
 script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build SageAttention"
 cd ..
 
