@@ -34,7 +34,6 @@ else
   echo "== Using pip"
 fi
 
-# --- START OF MODIFICATION ---
 echo "Checking for existing onnxruntime installations..."
 
 # Check if standard onnxruntime (CPU) is installed
@@ -52,7 +51,6 @@ if pip show onnxruntime > /dev/null 2>&1; then
 else
     echo "No conflicting 'onnxruntime' (CPU) package found. Proceeding..."
 fi
-# --- END OF MODIFICATION ---
 
 CMD="${PIP3_CMD} onnxruntime-gpu"
 echo "CMD: \"${CMD}\""
