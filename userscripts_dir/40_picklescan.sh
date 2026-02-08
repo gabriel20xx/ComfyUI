@@ -21,55 +21,77 @@ START_TIME=$(date +%s)
 TARGET_DIR="/basedir"
 FALLBACK_DIR="/basedir/models"
 SCAN_TIMEOUT=15       # Set timeout to your wishes; Scanning 200 files takes about 10s
-FAIL_ON_THREATS=true  # Set to false if you want to continue docker startup
+FAIL_ON_THREATS="${FAIL_ON_THREATS:-true}"  # Set to false if you want to continue docker startup
+FAIL_ON_WARNINGS="${FAIL_ON_WARNINGS:-false}"  # Set to true if you want to stop docker startup on nonblocking warnings
+FORCE_REINSTALL="${FORCE_REINSTALL:-false}" # Set to true to force reinstall of Picklescan
 # ---------------------
 
 set -e
 
 # --- COLOR CODES (for console)---
-RED=$(printf '\033[0;41m') # White on RED BG
-# RED=$(printf '\033[0;91m') # Red on Black BG
-YELLOW=$(printf '\033[0;33m')
-GREEN=$(printf '\033[0;32m')
-BLINK=$(printf '\033[0;6m')
+LOG_ERR=$(printf '\033[0;41m') # White on RED BG
+# LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
+# LOG_ERR=$(printf '\033[0m') # No Color
+
+LOG_WARN=$(printf '\033[0;33m') # Yellow
+# LOG_WARN=$(printf '\033[0m') # No Color 
+
+LOG_OK=$(printf '\033[0;32m') # GREEN
+# LOG_OK=$(printf '\033[0m') # No Color 
+
+# LOG_INFO=$(printf '\033[0;32m') # Green 
+LOG_INFO=$(printf '\033[0m') # No Color
+
 NC=$(printf '\033[0m') # No Color
+# --------------------------------
 
 
 error_exit() {
-  echo -n -e "${RED}!! ERROR: "
+  echo -n -e "${LOG_ERR}!! ERROR: ${NC}"
   echo $*
-  echo -e "!! Exiting Picklescan Script (ID: $$)${NC}"
+  echo -e "!! Exiting Picklescan Script (ID: $$)"
   exit 1
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
 
-# We need both uv and the cache directory to enable build with uv
-use_uv=true
-uv="/comfy/mnt/venv/bin/uv"
-uv_cache="/comfy/mnt/uv_cache"
-if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
+# --- CHECK EXISTING INSTALLATION ---
+should_install=true
 
-echo "== PIP3_CMD: \"${PIP3_CMD}\""
-if [ "A$use_uv" == "Atrue" ]; then
-  echo "== Using uv"
-  echo " - uv: $uv"
-  echo " - uv_cache: $uv_cache"
-else
-  echo "== Using pip"
+if pip show picklescan > /dev/null 2>&1; then
+    if [ "$FORCE_REINSTALL" = "true" ]; then
+        echo "${LOG_WARN}WARNING:${NC} Picklescan is installed and FORCE_REINSTALL=true. Re-installing."
+        pip uninstall -y picklescan || error_exit "Failed to uninstall picklescan"
+        echo "${LOG_INFO}INFO:${NC} Picklescan package removed"
+    else
+        should_install=false
+    fi
 fi
 
-# 1. Install picklescan
-CMD="${PIP3_CMD} picklescan"
-echo "CMD: \"${CMD}\""
-${CMD} > /dev/null 2>&1 || error_exit "Failed to install picklescan"
+if [ "$should_install" = "true" ]; then
+    echo "${LOG_INFO}INFO:${NC} Installing Picklescan..."
+    echo "== PIP3_CMD: \"${PIP3_CMD}\""
+    if [ "A$use_uv" == "Atrue" ]; then
+        echo "== Using uv"
+        echo " - uv: $uv"
+        echo " - uv_cache: $uv_cache"
+    else
+        echo "== Using pip"
+    fi
+
+    CMD="${PIP3_CMD} picklescan"
+    echo "CMD: \"${CMD}\""
+    ${CMD} > /dev/null 2>&1 || error_exit "Failed to install picklescan"
+    echo "${LOG_OK}SUCCESS:${NC} Picklescan installed"
+fi
+# -----------------------------------
 
 # 2. Run picklescan and log output
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_FILE="${SCRIPT_DIR}/picklescan_output.txt"
 
 
-echo "== Running picklescan...${NC}"
+echo "${LOG_INFO}== Running picklescan...${NC}"
 echo " - Target: ${TARGET_DIR}"
 echo " - Fallback Target: ${FALLBACK_DIR}"
 echo " - Timeout: ${SCAN_TIMEOUT}s"
@@ -108,10 +130,10 @@ if [ $EXIT_CODE -eq 124 ]; then
     # 1. Write clean text to log
     echo "!! Scan timed out (> ${SCAN_TIMEOUT}s)." >> "${LOG_FILE}"
     # 2. Write color to console
-    echo "${YELLOW}!! Scan timed out (> ${SCAN_TIMEOUT}s).${NC}"
-    echo "!! Modify script to extend timeout or run manually inside container venv:" | tee -a "${LOG_FILE}"
-    echo "!! picklescan --path ${TARGET_DIR} " | tee -a "${LOG_FILE}"
-    echo "!! Switching to fallback directory (no timeout): ${FALLBACK_DIR}" | tee -a "${LOG_FILE}"
+    echo "${LOG_WARN}WARNING:${NC} !! Scan timed out (> ${SCAN_TIMEOUT}s)."
+    echo "         !! Modify script to extend timeout or run manually inside container venv:" | tee -a "${LOG_FILE}"
+    echo "         !! picklescan --path ${TARGET_DIR} " | tee -a "${LOG_FILE}"
+    echo "         !! Switching to fallback directory (no timeout): ${FALLBACK_DIR}" | tee -a "${LOG_FILE}"
     
     # Run the fallback scan
     picklescan --path "${FALLBACK_DIR}" >> "${LOG_FILE}" 2>&1
@@ -122,7 +144,7 @@ if [ $EXIT_CODE -eq 124 ]; then
          # Write clean to log
          echo "!! Warning: Fallback scan returned unusual exit code: $FALLBACK_CODE" >> "${LOG_FILE}"
          # Write color to console
-         echo "${YELLOW}!! Warning: Fallback scan returned unusual exit code: $FALLBACK_CODE${NC}"
+         echo "${LOG_WARN}WARNING:${NC} Fallback scan returned unusual exit code: $FALLBACK_CODE"
     fi
 
 elif [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then
@@ -130,7 +152,7 @@ elif [ $EXIT_CODE -ne 0 ] && [ $EXIT_CODE -ne 1 ]; then
 	  # Write clean to log
     echo "!! Warning: Main scan returned unusual exit code: $EXIT_CODE" >> "${LOG_FILE}"
 	  # Write color to console
-    echo "${YELLOW}!! Warning: Main scan returned unusual exit code: $EXIT_CODE${NC}"
+    echo "${LOG_WARN}WARNING:${NC} Main scan returned unusual exit code: $EXIT_CODE"
 fi
 
 # Re-enable 'set -e'
@@ -141,26 +163,33 @@ set -e
 # Extract counts from log file (default to 0 if not found)
 INFECTED_COUNT=$(grep "Infected files:" "${LOG_FILE}" | awk '{print $3}')
 GLOBALS_COUNT=$(grep "Dangerous globals:" "${LOG_FILE}" | awk '{print $3}')
+WARNING_COUNT=$(grep -c "WARNING:" "${LOG_FILE}")
 
 # Ensure variables are numbers (handle empty grep results)
 INFECTED_COUNT=${INFECTED_COUNT:-0}
 GLOBALS_COUNT=${GLOBALS_COUNT:-0}
+WARNING_COUNT=${WARNING_COUNT:-0}
 
 echo "----------- SCAN SUMMARY -----------"
 grep "Scanned files:" "${LOG_FILE}" || echo "Scanned files: 0"
 
 # Print Infected Files (Red if > 0, else Green)
 if [ "$INFECTED_COUNT" -gt 0 ]; then
-    echo -e "${RED}Infected files: ${INFECTED_COUNT}${NC}"
+    echo -e "${LOG_ERR}Infected files: ${INFECTED_COUNT}${NC}"
 else
-    echo -e "${GREEN}Infected files: ${INFECTED_COUNT}${NC}"
+    echo -e "${LOG_OK}Infected files: ${INFECTED_COUNT}${NC}"
 fi
 
 # Print Dangerous Globals (Red if > 0, else Green)
 if [ "$GLOBALS_COUNT" -gt 0 ]; then
-    echo -e "${RED}Dangerous globals: ${GLOBALS_COUNT}${NC}"
+    echo -e "${LOG_ERR}Dangerous globals: ${GLOBALS_COUNT}${NC}"
 else
-    echo -e "${GREEN}Dangerous globals: ${GLOBALS_COUNT}${NC}"
+    echo -e "${LOG_OK}Dangerous globals: ${GLOBALS_COUNT}${NC}"
+fi
+
+# Print Warnings (Yellow if > 0)
+if [ "$WARNING_COUNT" -gt 0 ]; then
+    echo -e "${LOG_WARN}Warnings found: ${WARNING_COUNT}${NC}; Non-blocking, check output for details"
 fi
 
 # --- Calculate Duration ---
@@ -180,12 +209,20 @@ cat <<EOF >> "${LOG_FILE}"
 # For Pickle issues or false positives; contact Picklescan github or offending file owner.
 EOF
 
-echo "saved detailed scan results to ${LOG_FILE}"
-echo "${TIME_MSG}"
+echo "${LOG_INFO}INFO:${NC} Saved detailed Picklescan results to ${LOG_FILE}"
+echo "${LOG_INFO}INFO:${NC} ${TIME_MSG}"
 
 # --- EXIT LOGIC ---
 if [ "$FAIL_ON_THREATS" = "true" ]; then
     if [ "$INFECTED_COUNT" -gt 0 ] || [ "$GLOBALS_COUNT" -gt 0 ]; then
+        echo -e "${LOG_ERR}Dangerous files or globals found: Exiting${NC}"
+        exit 1
+    fi
+fi
+
+if [ "$FAIL_ON_WARNINGS" = "true" ]; then
+    if [ "$WARNING_COUNT" -gt 0 ]; then
+        echo -e "${LOG_ERR}Warnings found: Exiting${NC}"
         exit 1
     fi
 fi

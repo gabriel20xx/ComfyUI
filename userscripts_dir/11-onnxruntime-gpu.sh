@@ -8,16 +8,69 @@
 # https://onnxruntime.ai/
 # https://github.com/microsoft/onnxruntime
 
+# --- CONFIGURATION ---
+FORCE_REINSTALL="${FORCE_REINSTALL:-false}"
+# ---------------------
+
+# --- COLOR CODES (for console)---
+LOG_ERR=$(printf '\033[0;41m') # White on RED BG
+# LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
+# LOG_ERR=$(printf '\033[0m') # No Color
+
+LOG_WARN=$(printf '\033[0;33m') # Yellow
+# LOG_WARN=$(printf '\033[0m') # No Color 
+
+LOG_OK=$(printf '\033[0;32m') # GREEN
+# LOG_OK=$(printf '\033[0m') # No Color 
+
+# LOG_INFO=$(printf '\033[0;32m') # Green 
+LOG_INFO=$(printf '\033[0m') # No Color
+
+NC=$(printf '\033[0m') # No Color
+# --------------------------------
+
 set -e
 
 error_exit() {
-  echo -n "!! ERROR: "
+  echo -n -e "${LOG_ERR}!! ERROR: ${NC}"
   echo $*
-  echo "!! Exiting script (ID: $$)"
+  echo -e "!! Exiting onnxruntime-gpu Script (ID: $$)"
   exit 1
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+echo "Checking for existing onnxruntime installations..."
+
+# Check if onnxruntime-gpu is installed
+if pip show onnxruntime-gpu > /dev/null 2>&1; then
+    # Check if standard onnxruntime (CPU) is ALSO installed
+    if pip show onnxruntime > /dev/null 2>&1; then
+        # Case: GPU installed AND CPU installed -> Remove both, then install GPU
+        echo "${LOG_WARN}Warning:${NC} Found BOTH onnxruntime and onnxruntime-gpu."
+        echo "Uninstalling both to ensure clean GPU installation..."
+        pip uninstall -y onnxruntime onnxruntime-gpu || error_exit "Failed to uninstall conflicting packages"
+    else
+        # Case: GPU installed AND CPU NOT installed
+        if [ "$FORCE_REINSTALL" = "false" ]; then
+            echo "${LOG_INFO}INFO:${NC} onnxruntime-gpu is already installed and clean."
+            echo "     (Set FORCE_REINSTALL=true in script to force reinstall)"
+            exit 0
+        else
+            pip uninstall -y onnxruntime-gpu || error_exit "Failed to uninstall onnxruntime-gpu"
+        fi
+     fi
+else
+    # Check if standard onnxruntime (CPU) is installed
+    if pip show onnxruntime > /dev/null 2>&1; then
+        # Case: GPU NOT installed AND CPU installed -> Remove CPU, then install GPU
+        echo "${LOG_WARN}Warning:${NC} Found onnxruntime (CPU). Uninstalling it to replace with GPU version..."
+        pip uninstall -y onnxruntime || error_exit "Failed to uninstall onnxruntime"
+    else
+        # Case: GPU NOT installed AND CPU NOT installed -> Install GPU
+        echo "${LOG_INFO}INFO:${NC} No conflicting 'onnxruntime' (CPU) package found. Proceeding..."
+    fi
+fi
 
 # We need both uv and the cache directory to enable build with uv
 use_uv=true
@@ -34,26 +87,9 @@ else
   echo "== Using pip"
 fi
 
-echo "Checking for existing onnxruntime installations..."
-
-# Check if standard onnxruntime (CPU) is installed
-if pip show onnxruntime > /dev/null 2>&1; then
-    # Check if onnxruntime-gpu is ALSO installed
-    if pip show onnxruntime-gpu > /dev/null 2>&1; then
-        echo "Found BOTH onnxruntime and onnxruntime-gpu."
-        echo "Uninstalling both to ensure clean GPU installation..."
-        pip uninstall -y onnxruntime onnxruntime-gpu || error_exit "Failed to uninstall conflicting packages"
-    else
-        # Only standard onnxruntime is installed
-        echo "Found onnxruntime (CPU). Uninstalling it to replace with GPU version..."
-        pip uninstall -y onnxruntime || error_exit "Failed to uninstall onnxruntime"
-    fi
-else
-    echo "No conflicting 'onnxruntime' (CPU) package found. Proceeding..."
-fi
-
 CMD="${PIP3_CMD} onnxruntime-gpu"
 echo "CMD: \"${CMD}\""
 ${CMD} || error_exit "Failed to install onnxruntime-gpu"
+echo "${LOG_OK}SUCCESS:${NC} onnxruntime-gpu installed"
 
 exit 0
