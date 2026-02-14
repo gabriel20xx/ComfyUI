@@ -9,16 +9,51 @@ nunchaku_version="v1.2.1"
 # detects the compute capability of the GPUs present on the machine and compiles only for those SMs
 export NUNCHAKU_INSTALL_MODE=FAST
 
+# --- CONFIGURATION ---
+FORCE_REINSTALL="${FORCE_REINSTALL:-false}"
+# ---------------------
+
+# --- COLOR CODES (for console)---
+LOG_ERR=$(printf '\033[0;41m') # White on RED BG
+# LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
+# LOG_ERR=$(printf '\033[0m') # No Color
+
+LOG_WARN=$(printf '\033[0;33m') # Yellow
+# LOG_WARN=$(printf '\033[0m') # No Color 
+
+LOG_OK=$(printf '\033[0;32m') # GREEN
+# LOG_OK=$(printf '\033[0m') # No Color 
+
+# LOG_INFO=$(printf '\033[0;32m') # Green 
+LOG_INFO=$(printf '\033[0m') # No Color
+
+NC=$(printf '\033[0m') # No Color
+# --------------------------------
+
 set -e
 
 error_exit() {
-  echo -n "!! ERROR: "
+ echo -n -e "${LOG_ERR}!! ERROR: ${NC}"
   echo $*
-  echo "!! Exiting script (ID: $$)"
+  echo "!! Exiting nunchaku script (ID: $$)"
   exit 1
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+# --- CHECK EXISTING INSTALLATION ---
+if [ "$FORCE_REINSTALL" = "false" ]; then
+    if pip show nunchaku > /dev/null 2>&1; then
+        echo "${LOG_INFO}INFO:${NC} Nunchaku is already installed."
+        echo "     (Set FORCE_REINSTALL=true in script to force rebuild/reinstall)"
+        exit 0
+    fi
+else
+    echo " !! FORCE_REINSTALL is true. Proceeding..."
+fi
+# -----------------------------------
+
+echo "** Installing nunchaku**"
 
 # We need both uv and the cache directory to enable build with uv
 use_uv=true
@@ -68,7 +103,7 @@ cd $td
 
 dd="/comfy/mnt/src/${BUILD_BASE}/$td/nunchaku-${nunchaku_version}"
 if [ -d $dd ]; then
-  echo "Nunchaku source already present, you must delete it at $dd to force reinstallation"
+  echo "${LOG_WARN}WARNING:${NC} Nunchaku source already present, you must delete it at $dd to force reinstallation"
   exit 0
 fi
 
@@ -113,5 +148,5 @@ echo $CMD > $tdd/build.cmd; chmod +x $tdd/build.cmd
 script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build Nunchaku"
 
 mv $tdd $dd
-echo "++ Nunchaku built successfully"
+echo "${LOG_OK}SUCCESS:${NC} Nunchaku built successfully"
 exit 0

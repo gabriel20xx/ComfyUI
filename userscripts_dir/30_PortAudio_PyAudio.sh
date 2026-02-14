@@ -32,7 +32,7 @@ set -e
 DOWNLOAD_PORTAUDIO="${DOWNLOAD_PORTAUDIO:-true}"
 
 # Set to 'true' to remove any existing PortAudio installation before installing.
-FORCE_PORTAUDIO_REINSTALL="${FORCE_PORTAUDIO_REINSTALL:-false}"
+FORCE_REINSTALL="${FORCE_REINSTALL:-false}"
 
 # Set the path to your virtual environment's activation script.
 VENV_PATH="${VENV_PATH:-/comfy/mnt/venv/bin/activate}"
@@ -41,31 +41,68 @@ VENV_PATH="${VENV_PATH:-/comfy/mnt/venv/bin/activate}"
 PORTAUDIO_URL="https://files.portaudio.com/archives/pa_stable_v190700_20210406.tgz"
 PORTAUDIO_DOWNLOAD_PAGE="https://files.portaudio.com/download.html"
 
+# --- COLOR CODES (for console)---
+LOG_ERR=$(printf '\033[0;41m') # White on RED BG
+# LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
+# LOG_ERR=$(printf '\033[0m') # No Color
+
+LOG_WARN=$(printf '\033[0;33m') # Yellow
+# LOG_WARN=$(printf '\033[0m') # No Color 
+
+LOG_OK=$(printf '\033[0;32m') # GREEN
+# LOG_OK=$(printf '\033[0m') # No Color 
+
+# LOG_INFO=$(printf '\033[0;32m') # Green 
+LOG_INFO=$(printf '\033[0m') # No Color
+
+NC=$(printf '\033[0m') # No Color
+# --------------------------------
 
 # --- Helper Functions ---
 
 # Function to print an error message and exit.
 error_exit() {
-  echo "!! ERROR: $1" >&2
-  echo "!! Exiting script."
+  echo -n -e "${LOG_ERR}!! ERROR: ${NC}"
+  echo $*
+  echo -e "!! Exiting PortAudio_PyAudio Script (ID: $$)"
   exit 1
 }
 
 # Function to print an informational message.
 log_info() {
-  echo "++ INFO: $1"
+  echo "${LOG_INFO}INFO:${NC} $1"
 }
 
 # --- Main Script ---
 
+# 0. EARLY EXIT CHECK
+#    Since PyAudio requires PortAudio to install, if PyAudio is present,
+#    we can assume PortAudio is also set up correctly.
+if [ "$FORCE_REINSTALL" = "false" ]; then
+    if [ -f "$VENV_PATH" ]; then
+        log_info "Checking for existing PyAudio installation..."
+        # Run check in a subshell to avoid affecting current shell environment
+        if (source "$VENV_PATH" && pip3 show pyaudio &>/dev/null); then
+            log_info "PyAudio is already installed (which implies PortAudio is present)."
+            log_info "Skipping installation. Set FORCE_REINSTALL=true to force a rebuild."
+            exit 0
+        fi
+        log_info "PyAudio not found. Proceeding with PortAudio installation."
+    else
+        log_info "Virtual environment not found at $VENV_PATH. Proceeding with installation."
+    fi
+else
+    log_info "FORCE_REINSTALL is true. Ignoring existing PyAudio checks."
+fi
+
 # 1. Check if PortAudio needs to be installed or reinstalled.
 log_info "Checking for existing PortAudio installation..."
-if ldconfig -p | grep -q libportaudio && [ "$FORCE_PORTAUDIO_REINSTALL" = "false" ]; then
+if ldconfig -p | grep -q libportaudio && [ "$FORCE_REINSTALL" = "false" ]; then
     log_info "PortAudio library is already installed. Skipping compilation."
 else
     # This block runs if PortAudio is not found OR if a reinstall is forced.
-    if [ "$FORCE_PORTAUDIO_REINSTALL" = "true" ]; then
-        log_info "FORCE_PORTAUDIO_REINSTALL is true. Attempting to clean up previous installations."
+    if [ "$FORCE_REINSTALL" = "true" ]; then
+        log_info "FORCE_REINSTALL is true. Attempting to clean up previous installations."
         if [ -d "/usr/src/portaudio" ]; then
             log_info "Found existing source directory. Running 'make uninstall'..."
             # Run in a subshell to avoid changing the script's directory
@@ -152,29 +189,31 @@ else
     log_info "PortAudio installed successfully."
 fi
 
+# 2. Activate virtual environment and install PyAudio.
 
-# 2. Activate virtual environment and check/install PyAudio.
-log_info "Checking for PyAudio installation..."
-if [ ! -f "$VENV_PATH" ]; then
-    error_exit "Virtual environment activation script not found at $VENV_PATH"
+log_info "Installing PyAudio..."
+
+source "$VENV_PATH" || error_exit "Failed to activate virtualenv"
+
+# We need both uv and the cache directory to enable build with uv
+use_uv=true
+uv="/comfy/mnt/venv/bin/uv"
+uv_cache="/comfy/mnt/uv_cache"
+if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
+
+echo "== PIP3_CMD: \"${PIP3_CMD}\""
+if [ "A$use_uv" == "Atrue" ]; then
+  echo "== Using uv"
+  echo " - uv: $uv"
+  echo " - uv_cache: $uv_cache"
+else
+  echo "== Using pip"
 fi
 
-# We source in a subshell to avoid changing the current shell's environment
-(
-  # shellcheck source=/dev/null
-  source "$VENV_PATH" || error_exit "Failed to activate virtual environment."
-  log_info "Virtual environment activated."
+# 1. Install pyaudio
+CMD="${PIP3_CMD} pyaudio"
+echo "CMD: \"${CMD}\""
+${CMD} || error_exit "Failed to install PyAudio"
 
-  if pip3 show pyaudio &>/dev/null; then
-    log_info "PyAudio is already installed."
-  else
-    log_info "PyAudio not found. Installing via pip..."
-    if ! pip3 install pyaudio; then
-      error_exit "Failed to install PyAudio."
-    fi
-    log_info "PyAudio installed successfully."
-  fi
-)
-
-log_info "--- Installation complete! ---"
+echo "${LOG_OK}SUCCESS:${NC} PortAudio / PyAudio Installation complete! ---"
 exit 0

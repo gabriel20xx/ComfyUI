@@ -23,56 +23,75 @@
 #
 # ==============================================================================
 
-# --- Configuration ---
-# Set the path to your virtual environment's activation script.
-# This should match the venv used by your ComfyUI instance.
-VENV_ACTIVATE_PATH="/comfy/mnt/venv/bin/activate"
-
-# The package that needs to be recompiled.
+# --- CONFIGURATION ---
 PACKAGE_TO_FIX="simsimd"
+# ---------------------
 
-# --- Main Script ---
+# --- COLOR CODES (for console)---
+LOG_ERR=$(printf '\033[0;41m') # White on RED BG
+# LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
+# LOG_ERR=$(printf '\033[0m') # No Color
 
-echo "--- Starting simsimd Re-compilation Fix ---"
+LOG_WARN=$(printf '\033[0;33m') # Yellow
+# LOG_WARN=$(printf '\033[0m') # No Color 
 
-# 1. Check if the virtual environment activation script exists
-if [ ! -f "$VENV_ACTIVATE_PATH" ]; then
-  echo "!! CRITICAL ERROR: Virtual environment not found at '$VENV_ACTIVATE_PATH'"
-  echo "!! Please check the path and ensure it's correct."
-  echo "!! Exiting script."
+LOG_OK=$(printf '\033[0;32m') # GREEN
+# LOG_OK=$(printf '\033[0m') # No Color 
+
+# LOG_INFO=$(printf '\033[0;32m') # Green 
+LOG_INFO=$(printf '\033[0m') # No Color
+
+NC=$(printf '\033[0m') # No Color
+# --------------------------------
+
+set -e
+
+error_exit() {
+  echo -n -e "${LOG_ERR}!! ERROR: ${NC}"
+  echo $*
+  echo -e "!! Exiting Fix Script (ID: $$)"
   exit 1
+}
+
+source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+# We need both uv and the cache directory to enable build with uv
+use_uv=true
+uv="/comfy/mnt/venv/bin/uv"
+uv_cache="/comfy/mnt/uv_cache"
+if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
+
+echo "== PIP3_CMD: \"${PIP3_CMD}\""
+if [ "A$use_uv" == "Atrue" ]; then
+  echo "== Using uv"
+  echo " - uv: $uv"
+  echo " - uv_cache: $uv_cache"
+else
+  echo "== Using pip"
 fi
 
-# 2. Activate the virtual environment
-# shellcheck source=/dev/null
-source "$VENV_ACTIVATE_PATH"
-if [ $? -ne 0 ]; then
-    echo "!! CRITICAL ERROR: Failed to activate virtualenv at '$VENV_ACTIVATE_PATH'"
-    echo "!! Exiting script."
-    exit 1
-fi
-echo "++ Virtual environment activated successfully."
+echo "${LOG_INFO}INFO:${NC} Starting $PACKAGE_TO_FIX Re-compilation Fix..."
 
-# 3. Re-install the package from source
-echo "-- Attempting to reinstall '$PACKAGE_TO_FIX' from source..."
-echo "   This may take a few moments as it needs to be compiled."
+# Re-install the package from source
+echo "${LOG_INFO}INFO:${NC} Attempting to reinstall '$PACKAGE_TO_FIX' from source..."
+echo "      This may take a few moments as it needs to be compiled."
 
 # The command to force reinstallation without using pre-built binaries.
-pip3 install --force-reinstall --no-binary :all: "$PACKAGE_TO_FIX"
+# We append the flags to the standard install command
+CMD="${PIP3_CMD} --force-reinstall --no-binary :all: ${PACKAGE_TO_FIX}"
+echo "CMD: \"${CMD}\""
 
-# 4. Check the result of the installation
-if [ $? -eq 0 ]; then
-    echo "++ Successfully re-installed '$PACKAGE_TO_FIX'."
-    echo "++ The ImportError should now be resolved."
-    echo "++ Please restart your ComfyUI service for the changes to take effect."
-else
-    echo "!! FAILED to reinstall '$PACKAGE_TO_FIX'."
+# Run the command and catch errors
+if ! ${CMD}; then
+    echo "${LOG_ERR}!! FAILED to reinstall '$PACKAGE_TO_FIX'.${NC}"
     echo "!! An error occurred during the compilation/installation process."
     echo "!! You may be missing build tools like 'build-essential' or 'python3-dev'."
     echo "!! Try running: apt-get update && apt-get install -y build-essential python3-dev"
-    echo "!! And then run this script again."
-    exit 1
+    error_exit "Compilation failed."
 fi
 
-echo "--- Fix script finished ---"
+echo "${LOG_OK}SUCCESS:${NC} Successfully re-installed '$PACKAGE_TO_FIX'."
+echo "         The ImportError should now be resolved."
+echo "         Please restart your ComfyUI service for the changes to take effect."
+
 exit 0

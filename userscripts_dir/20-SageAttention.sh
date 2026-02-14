@@ -6,16 +6,51 @@
 # https://github.com/thu-ml/SageAttention
 sageattention_version="v2.2.0"
 
+# --- CONFIGURATION ---
+FORCE_REINSTALL="${FORCE_REINSTALL:-false}"
+# ---------------------
+
+# --- COLOR CODES (for console)---
+LOG_ERR=$(printf '\033[0;41m') # White on RED BG
+# LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
+# LOG_ERR=$(printf '\033[0m') # No Color
+
+LOG_WARN=$(printf '\033[0;33m') # Yellow
+# LOG_WARN=$(printf '\033[0m') # No Color 
+
+LOG_OK=$(printf '\033[0;32m') # GREEN
+# LOG_OK=$(printf '\033[0m') # No Color 
+
+# LOG_INFO=$(printf '\033[0;32m') # Green 
+LOG_INFO=$(printf '\033[0m') # No Color
+
+NC=$(printf '\033[0m') # No Color
+# --------------------------------
+
 set -e
 
 error_exit() {
-  echo -n "!! ERROR: "
+  echo -n -e "${LOG_ERR}!! ERROR: ${NC}"
   echo $*
-  echo "!! Exiting script (ID: $$)"
+  echo -e "!! Exiting sageattention Script (ID: $$)"
   exit 1
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+# --- CHECK EXISTING INSTALLATION ---
+if [ "$FORCE_REINSTALL" = "false" ]; then
+    if pip show sageattention > /dev/null 2>&1; then
+        echo "${LOG_INFO}INFO:${NC} SageAttention is already installed."
+        echo "     (Set FORCE_REINSTALL=true in script to force rebuild/reinstall)"
+        exit 0
+    fi
+else
+    echo "${LOG_INFO}INFO:${NC} FORCE_REINSTALL is true. Proceeding..."
+fi
+# -----------------------------------
+
+echo "** Installing sageattention**"
 
 # We need both uv and the cache directory to enable build with uv
 use_uv=true
@@ -65,7 +100,7 @@ cd $td
 
 dd="/comfy/mnt/src/${BUILD_BASE}/$td/SageAttention-${sageattention_version}"
 if [ -d $dd ]; then
-  echo "SageAttention source already present, you must delete it at $dd to force reinstallation"
+  echo "${LOG_WARN}WARNING:${NC} SageAttention source already present, you must delete it at $dd to force reinstallation"
   exit 0
 fi
 
@@ -106,5 +141,5 @@ script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build Sag
 cd ..
 
 mv $tdd $dd
-echo "++ SageAttention built successfully"
+echo "${LOG_OK}SUCCESS:${NC} SageAttention built successfully"
 exit 0
