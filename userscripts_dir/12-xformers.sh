@@ -86,10 +86,8 @@ if [ -z "$CUDA_VERSION" ]; then error_exit "CUDA version not found in build base
 echo "CUDA version: $CUDA_VERSION"
 
 must_build=false
-# check PyTorch version: < 2.10 cam use pip3, otherwise must build
 if pip3 show torch &>/dev/null; then
   torch_version=$(pip3 show torch | grep Version | awk '{print $2}' | cut -d'.' -f1-2)
-#  if [ "A$torch_version" == "A2.10" ]; then must_build=true; fi
 else
   error_exit "torch not installed, canceling run"
 fi
