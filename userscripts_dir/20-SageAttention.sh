@@ -50,7 +50,7 @@ else
 fi
 # -----------------------------------
 
-echo "** Installing sageattention**"
+echo "** Installing SageAttention**"
 
 # We need both uv and the cache directory to enable build with uv
 use_uv=true
@@ -98,25 +98,57 @@ td="Torch_${torch_version}"
 if [ ! -d $td ]; then mkdir $td; fi
 cd $td
 
-dd="/comfy/mnt/src/${BUILD_BASE}/$td/SageAttention-${sageattention_version}"
+# https://github.com/thu-ml/SageAttention/tree/main/sageattention3_blackwell
+# Check for Blackwell
+python3 - > /tmp/$$ <<'PY'
+import torch
+if torch.cuda.get_device_capability(0)[0] > 9:
+  print("true")
+else:
+  print("false")
+PY
+
+blackwell=$(cat /tmp/$$)
+rm -f /tmp/$$
+
+echo " ++ Blackwell detected: $blackwell"
+
+bd="/comfy/mnt/src/${BUILD_BASE}/$td"
+if [ "$blackwell" == "true" ]; then
+  dd="$bd/SageAttention-github"
+else
+  dd="$bd/SageAttention-${sageattention_version}"
+fi
+
 if [ -d $dd ]; then
   echo "${LOG_WARN}WARNING:${NC} SageAttention source already present, you must delete it at $dd to force reinstallation"
   exit 0
 fi
 
-echo "Compiling SageAttention"
 tdd="$dd-`date +%Y%m%d%H%M%S`"
 
-## Clone SageAttention
-git clone \
-  --branch $sageattention_version \
-  --recurse-submodules https://github.com/thu-ml/SageAttention.git \
-  $tdd
+echo " ++ Cloning SageAttention to $tdd"
+if [ "$blackwell" == "true" ]; then
+  git clone \
+    --recurse-submodules https://github.com/thu-ml/SageAttention.git \
+    $tdd
+  xtdd="$tdd/sageattention3_blackwell"
+else
+  git clone \
+    --branch $sageattention_version \
+    --recurse-submodules https://github.com/thu-ml/SageAttention.git \
+    $tdd
+  xtdd=$tdd
+fi
+
+echo "++ Compiling SageAttention"
 
 echo "PIP3_CMD: \"${PIP3_CMD}\""
 ## Compile SageAttention
+cd $xtdd
+# ^ one level deeper for Blackwell
 # Heavy compilation parallelization: lower the number manually if needed
-cd $tdd
+echo " - pwd: $(pwd)"
 numproc=$(nproc --all)
 echo " - numproc: $numproc"
 ext_parallel=$(( numproc / 2 ))
@@ -138,7 +170,7 @@ CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS=\"--threads $num_threads\" MAX
 echo "CMD: \"${CMD}\""
 echo $CMD > $tdd/build.cmd; chmod +x $tdd/build.cmd
 script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build SageAttention"
-cd ..
+cd $bd
 
 mv $tdd $dd
 echo "${LOG_OK}SUCCESS:${NC} SageAttention built successfully"
