@@ -40,19 +40,50 @@ error_exit() {
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
 
+echo "Checking for existing onnxruntime installations..."
 
-# If aarch64, we must build (no whl available)
+# Check if onnxruntime-gpu is installed
+if pip show onnxruntime-gpu > /dev/null 2>&1; then
+    # Check if standard onnxruntime (CPU) is ALSO installed
+    if pip show onnxruntime > /dev/null 2>&1; then
+        # Case: GPU installed AND CPU installed -> Remove both, then install GPU
+        echo "${LOG_WARN}Warning:${NC} Found BOTH onnxruntime and onnxruntime-gpu."
+        echo "Uninstalling both to ensure clean GPU installation..."
+        pip uninstall -y onnxruntime onnxruntime-gpu || error_exit "Failed to uninstall conflicting packages"
+    else
+        # Case: GPU installed AND CPU NOT installed
+        if [ "$FORCE_REINSTALL" = "false" ]; then
+            echo "${LOG_INFO}INFO:${NC} onnxruntime-gpu is already installed and clean."
+            echo "     (Set FORCE_REINSTALL=true in script to force reinstall)"
+            exit 0
+        else
+            pip uninstall -y onnxruntime-gpu || error_exit "Failed to uninstall onnxruntime-gpu"
+        fi
+     fi
+else
+    # Check if standard onnxruntime (CPU) is installed
+    if pip show onnxruntime > /dev/null 2>&1; then
+        # Case: GPU NOT installed AND CPU installed -> Remove CPU, then install GPU
+        echo "${LOG_WARN}Warning:${NC} Found onnxruntime (CPU). Uninstalling it to replace with GPU version..."
+        pip uninstall -y onnxruntime || error_exit "Failed to uninstall onnxruntime"
+    else
+        # Case: GPU NOT installed AND CPU NOT installed -> Install GPU
+        echo "${LOG_INFO}INFO:${NC} No conflicting 'onnxruntime' (CPU) package found. Proceeding..."
+    fi
+fi
+
+# We need both uv and the cache directory to enable build with uv
+use_uv=true
+uv="/comfy/mnt/venv/bin/uv"
+uv_cache="/comfy/mnt/uv_cache"
+if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
+
+# If aarch64 (GB10), we must build (no whl available)
 if [ "$(uname -m)" == "aarch64" ]; then must_build=true; fi
 
 # https://github.com/thewh1teagle/spark-docs/blob/main/BUILD_ONNXRUNTIME.md
 if [ "A$must_build" == "Atrue" ]; then
     echo "Building onnxruntime-gpu from source..."
-
-    # We need both uv and the cache directory to enable build with uv
-    use_uv=true
-    uv="/comfy/mnt/venv/bin/uv"
-    uv_cache="/comfy/mnt/uv_cache"
-    if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
 
     echo "Checking if nvcc is available"
     if ! command -v nvcc &> /dev/null; then
@@ -82,10 +113,8 @@ if [ "A$must_build" == "Atrue" ]; then
 
     echo "CUDA version: $CUDA_VERSION"
 
-    # check PyTorch version: < 2.10 cam use pip3, otherwise must build
     if pip3 show torch &>/dev/null; then
         torch_version=$(pip3 show torch | grep Version | awk '{print $2}' | cut -d'.' -f1-2)
-        if [ "A$torch_version" == "A2.10" ]; then must_build=true; fi
     else
         error_exit "torch not installed, canceling run"
     fi
@@ -144,45 +173,6 @@ EOF
     echo "${LOG_INFO}INFO:${NC} onnxruntime-gpu built successfully"
     exit 0
 fi
-
-
-echo "Checking for existing onnxruntime installations..."
-
-# Check if onnxruntime-gpu is installed
-if pip show onnxruntime-gpu > /dev/null 2>&1; then
-    # Check if standard onnxruntime (CPU) is ALSO installed
-    if pip show onnxruntime > /dev/null 2>&1; then
-        # Case: GPU installed AND CPU installed -> Remove both, then install GPU
-        echo "${LOG_WARN}Warning:${NC} Found BOTH onnxruntime and onnxruntime-gpu."
-        echo "Uninstalling both to ensure clean GPU installation..."
-        pip uninstall -y onnxruntime onnxruntime-gpu || error_exit "Failed to uninstall conflicting packages"
-    else
-        # Case: GPU installed AND CPU NOT installed
-        if [ "$FORCE_REINSTALL" = "false" ]; then
-            echo "${LOG_INFO}INFO:${NC} onnxruntime-gpu is already installed and clean."
-            echo "     (Set FORCE_REINSTALL=true in script to force reinstall)"
-            exit 0
-        else
-            pip uninstall -y onnxruntime-gpu || error_exit "Failed to uninstall onnxruntime-gpu"
-        fi
-     fi
-else
-    # Check if standard onnxruntime (CPU) is installed
-    if pip show onnxruntime > /dev/null 2>&1; then
-        # Case: GPU NOT installed AND CPU installed -> Remove CPU, then install GPU
-        echo "${LOG_WARN}Warning:${NC} Found onnxruntime (CPU). Uninstalling it to replace with GPU version..."
-        pip uninstall -y onnxruntime || error_exit "Failed to uninstall onnxruntime"
-    else
-        # Case: GPU NOT installed AND CPU NOT installed -> Install GPU
-        echo "${LOG_INFO}INFO:${NC} No conflicting 'onnxruntime' (CPU) package found. Proceeding..."
-    fi
-fi
-
-# We need both uv and the cache directory to enable build with uv
-use_uv=true
-uv="/comfy/mnt/venv/bin/uv"
-uv_cache="/comfy/mnt/uv_cache"
-if [ ! -x "$uv" ] || [ ! -d "$uv_cache" ]; then use_uv=false; fi
 
 echo "== PIP3_CMD: \"${PIP3_CMD}\""
 if [ "A$use_uv" == "Atrue" ]; then
