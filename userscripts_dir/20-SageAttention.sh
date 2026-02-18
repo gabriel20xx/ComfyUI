@@ -5,6 +5,10 @@
 
 # https://github.com/thu-ml/SageAttention
 sageattention_version="v2.2.0"
+#sageattention_version="git"
+# To Install from git, uncomment the line above and comment out the line below
+# sageattention_version="git-sa3"
+# To install sageattn3 (only for blackwell) use "git-sa3"
 
 # --- CONFIGURATION ---
 FORCE_REINSTALL="${FORCE_REINSTALL:-false}"
@@ -114,12 +118,16 @@ rm -f /tmp/$$
 echo " ++ Blackwell detected: $blackwell"
 
 bd="/comfy/mnt/src/${BUILD_BASE}/$td"
-if [ "$blackwell" == "true" ]; then
-  dd="$bd/SageAttention-github"
-else
-  dd="$bd/SageAttention-${sageattention_version}"
+if [ "$sageattention_version" == "git-sa3" ]; then
+  if [ "$blackwell" == "true" ]; then
+    echo " ++ Installing sageattn3 for Blackwell"
+  else
+    echo " ++ Blackwell not detected, cannot install sageattn3"
+    exit 1
+  fi
 fi
 
+dd="$bd/SageAttention-${sageattention_version}"
 if [ -d $dd ]; then
   echo "${LOG_WARN}WARNING:${NC} SageAttention source already present, you must delete it at $dd to force reinstallation"
   exit 0
@@ -128,11 +136,16 @@ fi
 tdd="$dd-`date +%Y%m%d%H%M%S`"
 
 echo " ++ Cloning SageAttention to $tdd"
-if [ "$blackwell" == "true" ]; then
+if [ "$sageattention_version" == "git-sa3" ]; then
   git clone \
     --recurse-submodules https://github.com/thu-ml/SageAttention.git \
     $tdd
   xtdd="$tdd/sageattention3_blackwell"
+elif [ "$sageattention_version" == "git" ]; then
+  git clone \
+    --recurse-submodules https://github.com/thu-ml/SageAttention.git \
+    $tdd
+  xtdd=$tdd
 else
   git clone \
     --branch $sageattention_version \
