@@ -5,17 +5,56 @@
 
 # https://github.com/thu-ml/SageAttention
 sageattention_version="v2.2.0"
+#sageattention_version="git"
+# To Install from git, uncomment the line above and comment out the line below
+# sageattention_version="git-sa3"
+# To install sageattn3 (only for blackwell) use "git-sa3"
+
+# --- CONFIGURATION ---
+FORCE_REINSTALL="${FORCE_REINSTALL:-false}"
+# ---------------------
+
+# --- COLOR CODES (for console)---
+LOG_ERR=$(printf '\033[0;41m') # White on RED BG
+# LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
+# LOG_ERR=$(printf '\033[0m') # No Color
+
+LOG_WARN=$(printf '\033[0;33m') # Yellow
+# LOG_WARN=$(printf '\033[0m') # No Color 
+
+LOG_OK=$(printf '\033[0;32m') # GREEN
+# LOG_OK=$(printf '\033[0m') # No Color 
+
+# LOG_INFO=$(printf '\033[0;32m') # Green 
+LOG_INFO=$(printf '\033[0m') # No Color
+
+NC=$(printf '\033[0m') # No Color
+# --------------------------------
 
 set -e
 
 error_exit() {
-  echo -n "!! ERROR: "
+  echo -n -e "${LOG_ERR}!! ERROR: ${NC}"
   echo $*
-  echo "!! Exiting script (ID: $$)"
+  echo -e "!! Exiting sageattention Script (ID: $$)"
   exit 1
 }
 
 source /comfy/mnt/venv/bin/activate || error_exit "Failed to activate virtualenv"
+
+# --- CHECK EXISTING INSTALLATION ---
+if [ "$FORCE_REINSTALL" = "false" ]; then
+    if pip show sageattention > /dev/null 2>&1; then
+        echo "${LOG_INFO}INFO:${NC} SageAttention is already installed."
+        echo "     (Set FORCE_REINSTALL=true in script to force rebuild/reinstall)"
+        exit 0
+    fi
+else
+    echo "${LOG_INFO}INFO:${NC} FORCE_REINSTALL is true. Proceeding..."
+fi
+# -----------------------------------
+
+echo "** Installing SageAttention**"
 
 # We need both uv and the cache directory to enable build with uv
 use_uv=true
@@ -52,23 +91,77 @@ mkdir -p ${BUILD_BASE}
 if [ ! -d ${BUILD_BASE} ]; then error_exit "${BUILD_BASE} not found"; fi
 cd ${BUILD_BASE}
 
-dd="/comfy/mnt/src/${BUILD_BASE}/SageAttention-${sageattention_version}"
+if pip3 show torch &>/dev/null; then
+  torch_version=$(pip3 show torch | grep Version | awk '{print $2}' | cut -d'.' -f1-2)
+else
+  error_exit "torch not installed, canceling run"
+fi
+
+if [ -z "$torch_version" ]; then error_exit "error getting torch version, canceling run"; fi
+td="Torch_${torch_version}"
+if [ ! -d $td ]; then mkdir $td; fi
+cd $td
+
+# https://github.com/thu-ml/SageAttention/tree/main/sageattention3_blackwell
+# Check for Blackwell
+python3 - > /tmp/$$ <<'PY'
+import torch
+if torch.cuda.get_device_capability(0)[0] > 9:
+  print("true")
+else:
+  print("false")
+PY
+
+blackwell=$(cat /tmp/$$)
+rm -f /tmp/$$
+
+echo " ++ Blackwell detected: $blackwell"
+
+bd="/comfy/mnt/src/${BUILD_BASE}/$td"
+if [ "$sageattention_version" == "git-sa3" ]; then
+  if [ "$blackwell" == "true" ]; then
+    echo " ++ Installing sageattn3 for Blackwell"
+  else
+    echo " ++ Blackwell not detected, cannot install sageattn3"
+    exit 1
+  fi
+fi
+
+dd="$bd/SageAttention-${sageattention_version}"
 if [ -d $dd ]; then
-  echo "SageAttention source already present, you must delete it at $dd to force reinstallation"
+  echo "${LOG_WARN}WARNING:${NC} SageAttention source already present, you must delete it at $dd to force reinstallation"
   exit 0
 fi
 
-echo "Compiling SageAttention"
+tdd="$dd-`date +%Y%m%d%H%M%S`"
 
-## Clone SageAttention
-git clone \
-  --branch $sageattention_version \
-  --recurse-submodules https://github.com/thu-ml/SageAttention.git \
-  $dd
+echo " ++ Cloning SageAttention to $tdd"
+if [ "$sageattention_version" == "git-sa3" ]; then
+  git clone \
+    --recurse-submodules https://github.com/thu-ml/SageAttention.git \
+    $tdd
+  xtdd="$tdd/sageattention3_blackwell"
+elif [ "$sageattention_version" == "git" ]; then
+  git clone \
+    --recurse-submodules https://github.com/thu-ml/SageAttention.git \
+    $tdd
+  xtdd=$tdd
+else
+  git clone \
+    --branch $sageattention_version \
+    --recurse-submodules https://github.com/thu-ml/SageAttention.git \
+    $tdd
+  xtdd=$tdd
+fi
 
+echo "++ Compiling SageAttention"
+
+echo "PIP3_CMD: \"${PIP3_CMD}\""
 ## Compile SageAttention
+cd $xtdd
+# ^ one level deeper for Blackwell
 # Heavy compilation parallelization: lower the number manually if needed
-cd $dd
+echo " - pwd: $(pwd)"
 numproc=$(nproc --all)
 echo " - numproc: $numproc"
 ext_parallel=$(( numproc / 2 ))
@@ -82,10 +175,16 @@ if [ "A$use_uv" == "Atrue" ]; then
   echo "== Using uv"
   echo " - uv: $uv"
   echo " - uv_cache: $uv_cache"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc uv run --active python3 setup.py install || error_exit "Failed to install SageAttention"
 else
   echo "== Using pip"
-  EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS="--threads $num_threads" MAX_JOBS=$numproc python3 setup.py install || error_exit "Failed to install SageAttention"
 fi
 
+CMD="EXT_PARALLEL=$ext_parallel NVCC_APPEND_FLAGS=\"--threads $num_threads\" MAX_JOBS=$numproc ${PIP3_CMD} ${PIP3_XTRA} . --no-build-isolation"
+echo "CMD: \"${CMD}\""
+echo $CMD > $tdd/build.cmd; chmod +x $tdd/build.cmd
+script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build SageAttention"
+cd $bd
+
+mv $tdd $dd
+echo "${LOG_OK}SUCCESS:${NC} SageAttention built successfully"
 exit 0

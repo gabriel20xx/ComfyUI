@@ -432,6 +432,14 @@ else
 fi
 echo "== PIP3_CMD: \"${PIP3_CMD}\""
 
+TORCH_LOCK=${TORCH_LOCK:-""}
+if [ ! -z "${TORCH_LOCK}" ]; then
+  echo "== TORCH_LOCK set: creating constraint file with values: \"${TORCH_LOCK}\""
+  # Replace spaces with newlines to ensure valid constraints file format (though pip usually handles spaces, newlines are safer for constraints files)
+  echo "${TORCH_LOCK}" | tr ' ' '\n' > ${COMFYUSER_DIR}/mnt/torch_lock.txt
+  PIP3_CMD="${PIP3_CMD} --constraint ${COMFYUSER_DIR}/mnt/torch_lock.txt"
+  echo "== Updated PIP3_CMD with constraints: \"${PIP3_CMD}\""
+fi
 
 ##
 USE_NEW_REPO_URL=${USE_NEW_REPO_URL:-"true"}
@@ -568,8 +576,9 @@ echo -n "  git bin: "; which git
 echo "  PIP3_CMD: ${PIP3_CMD}"
 echo -n "  DISABLE_UPGRADES: "; echo ${DISABLE_UPGRADES}
 echo -n "  USE_PIPUPGRADE: "; echo ${USE_PIPUPGRADE}
+echo ""
 
-
+export PIP3_CMD=${PIP3_CMD}
 run_userscript() {
   userscript=$1
   if [ ! -f $userscript ]; then
@@ -625,6 +634,7 @@ ${PIP3_CMD} cmake || error_exit "Failed to install cmake"
 ${PIP3_CMD} wheel || error_exit "Failed to install wheel"
 ${PIP3_CMD} pybind11 || error_exit "Failed to install pybind11"
 ${PIP3_CMD} packaging || error_exit "Failed to install packaging"
+${PIP3_CMD} Cython || error_exit "Failed to install Cython"
 # Addressing: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead.
 ${PIP3_CMD} nvidia-ml-py || error_exit "Failed to install nvidia-ml-py"
 # Manually remove `pynvml` after a `dockr exec`
@@ -657,8 +667,14 @@ if [ "$cuda_major" -lt 13 ]; then
 else # CUDA 13.0
   cuda_backend="cu130"
 fi
+
 # check that cuda_backend is set
 if [ -z "${cuda_backend}" ]; then error_exit "cuda_backend is not set"; fi
+
+if [ ! -z "${TORCH_LOCK}" ]; then
+  echo "== TORCH_LOCK set: locking torch version to ${TORCH_LOCK}"
+  torch_version="${TORCH_LOCK}"
+fi
 
 # Apply backend to either UV or pip
 if [ "A${USE_UV}" == "Atrue" ]; then

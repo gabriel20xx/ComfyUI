@@ -37,4 +37,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-mark hold ${NV_CUDNN_PACKAGE_NAME}-${NV_CUDA_ADD}
 
 ARG BASE_DOCKER_FROM=nvidia/cuda:12.5.1-devel-ubuntu24.04
-

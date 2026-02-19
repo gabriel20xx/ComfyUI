@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/cuda:13.1.0-devel-ubuntu24.04
+FROM nvcr.io/nvidia/cuda:13.1.1-devel-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -15,7 +15,7 @@ RUN if [ "A${BUILD_APT_PROXY:-}" != "A" ]; then \
 
 ARG BASE_DOCKER_FROM=nvcr.io/nvidia/cuda:13.1.0-devel-ubuntu24.04
 
-# extended from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/13.1.0/ubuntu2404/devel/cudnn/Dockerfile
+# extended from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/13.1.1/ubuntu2404/devel/cudnn/Dockerfile
 # using https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/sbsa/ (Arm Server Base System Architecture)
 ENV NV_CUDNN_VERSION=9.17.1.4-1
 ENV NV_CUDNN_PACKAGE_NAME=libcudnn9-cuda-13
@@ -31,4 +31,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ${NV_CUDNN_PACKAGE_DEV_HEADERS} \
     && apt-mark hold ${NV_CUDNN_PACKAGE_NAME} \
     && apt-get clean
-
