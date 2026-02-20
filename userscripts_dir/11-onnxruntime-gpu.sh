@@ -12,6 +12,10 @@
 FORCE_REINSTALL="${FORCE_REINSTALL:-false}"
 # ---------------------
 
+# Wiping both means we must reinstall one, so keep GPU by default
+ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT="${ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT:-false}"
+# building it is very slow, so try not to delete it if possible
+
 # --- COLOR CODES (for console)---
 LOG_ERR=$(printf '\033[0;41m') # White on RED BG
 # LOG_ERR=$(printf '\033[0;91m') # Red on Black BG
@@ -48,11 +52,18 @@ if pip show onnxruntime-gpu > /dev/null 2>&1; then
     if pip show onnxruntime > /dev/null 2>&1; then
         # Case: GPU installed AND CPU installed -> Remove both, then install GPU
         echo "${LOG_WARN}Warning:${NC} Found BOTH onnxruntime and onnxruntime-gpu."
-        echo "Uninstalling both to ensure clean GPU installation..."
-        pip uninstall -y onnxruntime onnxruntime-gpu || error_exit "Failed to uninstall conflicting packages"
+        if [ "$ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT" = "true" ]; then
+            echo "Uninstalling CPU to ensure clean GPU installation..."
+            echo "${LOG_WARN}Warning:${NC} ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT is true. Keeping onnxruntime-gpu..."
+            pip uninstall -y onnxruntime || error_exit "Failed to uninstall onnxruntime"
+            exit 0
+        else
+            echo "Uninstalling both to ensure clean GPU installation..."
+            pip uninstall -y onnxruntime onnxruntime-gpu || error_exit "Failed to uninstall conflicting packages"
+        fi
     else
         # Case: GPU installed AND CPU NOT installed
-        if [ "$FORCE_REINSTALL" = "false" ]; then
+        if [ "$FORCE_REINSTALL" = "false" ] || [ "$ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT" = "true" ]; then
             echo "${LOG_INFO}INFO:${NC} onnxruntime-gpu is already installed and clean."
             echo "     (Set FORCE_REINSTALL=true in script to force reinstall)"
             exit 0
@@ -133,22 +144,32 @@ if [ "A$must_build" == "Atrue" ]; then
     cd $td
 
     dd="/comfy/mnt/src/${BUILD_BASE}/$td/onnxruntime"
-    if [ -d $dd ]; then
+    if [ -d $dd ] && [ "$ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT" = "false" ]; then
         echo "${LOG_WARN}WARNING:${NC} onnxruntime source already present, you must delete $dd to force reinstallation"
         exit 0
     fi
-    tdd="$dd-`date +%Y%m%d%H%M%S`"
-    mkdir -p $tdd
-    
-    git clone --recursive https://github.com/microsoft/onnxruntime $tdd
+
+    if [ "$ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT" = "true" ]; then
+        echo "${LOG_WARN}Not downloading from git, using existing source"
+        tdd=$dd
+    else
+        tdd="$dd-`date +%Y%m%d%H%M%S`"
+        mkdir -p $tdd
+        git clone --recursive https://github.com/microsoft/onnxruntime $tdd
+    fi
+
     cd $tdd
 
     cat > $tdd/build.cmd << EOF
 #!/bin/bash
 export CMAKE_BUILD_PARALLEL_LEVEL=$(nproc)
-export CPLUS_INCLUDE_PATH=/usr/local/cuda/targets/sbsa-linux/include/cccl:$CPLUS_INCLUDE_PATH
-export C_INCLUDE_PATH=/usr/local/cuda/targets/sbsa-linux/include/cccl:$C_INCLUDE_PATH
-export CPATH=/usr/local/cuda/targets/sbsa-linux/include/cccl:$CPATH
+export CPLUS_INCLUDE_PATH=/usr/local/cuda/targets/sbsa-linux/include/cccl:\$CPLUS_INCLUDE_PATH
+export C_INCLUDE_PATH=/usr/local/cuda/targets/sbsa-linux/include/cccl:\$C_INCLUDE_PATH
+export CPATH=/usr/local/cuda/targets/sbsa-linux/include/cccl:\$CPATH
+
+source /comfy/mnt/venv/bin/activate
+
+find . -type f -name 'CMakeCache.txt' -delete
 
 ./build.sh \
     --config Release \
@@ -163,13 +184,18 @@ export CPATH=/usr/local/cuda/targets/sbsa-linux/include/cccl:$CPATH
     --build_wheel \
     --skip_tests
 
-pip install "numpy<2"
-pip install build/Linux/Release/dist/onnxruntime_gpu-*.whl
+if [ \$? -ne 0 ]; then echo "Failed to build onnxruntime-gpu"; exit 1; fi
+
+${PIP3_CMD} "numpy<2"
+${PIP3_CMD} build/Linux/Release/dist/onnxruntime_gpu-*.whl
 EOF
+
     chmod +x $tdd/build.cmd
     script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build onnxruntime-gpu"
     cd ..
-    mv $tdd $dd
+    if [ "$ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT" = "false" ]; then
+      mv $tdd $dd
+    fi
     echo "${LOG_INFO}INFO:${NC} onnxruntime-gpu built successfully"
     exit 0
 fi
