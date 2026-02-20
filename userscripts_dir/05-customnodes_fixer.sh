@@ -51,8 +51,8 @@ for cn in $todo; do
     fi
     echo " ++ Status: $status"
   fi
-  # if pyrproject failed and there is a requirements.txt, try to install requirements.txt
-  if [ $status -ne 0 ] && [ -f "requirements.txt" ]; then
+  # Also try to install requirements.txt
+  if [ -f "requirements.txt" ]; then
     echo " ++ Found requirements.txt, installing"
     if $PIP3_CMD -r requirements.txt; then
       status=0
