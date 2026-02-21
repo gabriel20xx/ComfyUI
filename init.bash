@@ -1030,7 +1030,7 @@ echo "-- Command line run: ${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA}"
 # Run ComfyUI; on CUDA allocator conflict (likely caused by a custom node's prestartup
 # modifying PYTORCH_CUDA_ALLOC_CONF), automatically retry with custom nodes disabled so
 # the user can still access the UI and manage their extensions.
-comfy_log=$(mktemp /tmp/comfy_run_XXXXXX.log)
+comfy_log=$(mktemp "${TMPDIR:-/tmp}/comfy_run_XXXXXX.log")
 # Limit how much output is written to the temporary log file to avoid unbounded growth.
 # All output is still printed to the terminal; only the last COMFY_LOG_MAX_LINES lines
 # are retained in the log for crash-signature inspection.
