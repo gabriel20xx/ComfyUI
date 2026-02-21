@@ -990,7 +990,7 @@ if [ "A${COMFY_CUDA_STABILITY}" == "Atrue" ]; then
         export PYTORCH_CUDA_ALLOC_CONF="backend:native,${PYTORCH_CUDA_ALLOC_CONF}"
       else
         # Replace any existing backend value with native to avoid conflicts
-        export PYTORCH_CUDA_ALLOC_CONF=$(echo "${PYTORCH_CUDA_ALLOC_CONF}" | sed 's/backend:[a-zA-Z]*/backend:native/g')
+        export PYTORCH_CUDA_ALLOC_CONF=$(echo "${PYTORCH_CUDA_ALLOC_CONF}" | sed 's/backend:[^,]*/backend:native/g')
       fi
     fi
     # Tell ComfyUI not to override the allocator backend at runtime, which would
@@ -1039,7 +1039,7 @@ set -e
 if [ $comfy_rc -ne 0 ]; then
   # Check whether the crash looks like a CUDA allocator backend conflict
   if grep -q "Allocator backend parsed at runtime != allocator backend parsed at load time" "$comfy_log" 2>/dev/null \
-     || grep -q "CUDAAllocatorConfig" "$comfy_log" 2>/dev/null; then
+     || grep -q "CUDAAllocatorConfig::parseAllocatorConfig" "$comfy_log" 2>/dev/null; then
     echo ""
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     echo "!! CUDA allocator backend conflict detected."
