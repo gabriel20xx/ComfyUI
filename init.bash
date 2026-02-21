@@ -1036,7 +1036,7 @@ comfy_log=$(mktemp "${TMPDIR:-/tmp}/comfy_run_XXXXXX.log")
 # are retained in the log for crash-signature inspection.
 COMFY_LOG_MAX_LINES=${COMFY_LOG_MAX_LINES:-10000}
 set +e
-${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA} 2>&1 | awk -v max="$COMFY_LOG_MAX_LINES" -v log="$comfy_log" '
+${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA} 2>&1 | awk -v max="$COMFY_LOG_MAX_LINES" -v logfile="$comfy_log" '
   {
     buf[NR % max] = $0
     print
@@ -1044,11 +1044,7 @@ ${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA} 2>&1 | awk -v max="$COMFY_LOG_MAX_L
   END {
     start = (NR > max ? NR - max + 1 : 1)
     for (i = start; i <= NR; i++) {
-      idx = i % max
-      if (idx == 0) {
-        idx = max
-      }
-      print buf[idx] >> log
+      print buf[i % max] >> logfile
     }
   }
 '
