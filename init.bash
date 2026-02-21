@@ -984,10 +984,10 @@ if [ "A${COMFY_CUDA_STABILITY}" == "Atrue" ]; then
   COMFY_DISABLE_CUDAMALLOCASYNC=`lc "${COMFY_DISABLE_CUDAMALLOCASYNC}"`
   if [ "A${COMFY_DISABLE_CUDAMALLOCASYNC}" == "Atrue" ]; then
     if [ -z "${PYTORCH_CUDA_ALLOC_CONF+x}" ]; then
-      export PYTORCH_CUDA_ALLOC_CONF="backend:cudaMalloc,expandable_segments:True"
+      export PYTORCH_CUDA_ALLOC_CONF="backend:native,expandable_segments:True"
     else
       if [[ "${PYTORCH_CUDA_ALLOC_CONF}" != *"backend:"* ]]; then
-        export PYTORCH_CUDA_ALLOC_CONF="backend:cudaMalloc,${PYTORCH_CUDA_ALLOC_CONF}"
+        export PYTORCH_CUDA_ALLOC_CONF="backend:native,${PYTORCH_CUDA_ALLOC_CONF}"
       fi
     fi
   fi
