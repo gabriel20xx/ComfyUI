@@ -836,6 +836,16 @@ else
   fi
 fi
 
+# Re-check that `pynvml` is not installed after custom nodes setup (it may have been re-installed as a dependency)
+if ${PIP3_BASE} show pynvml &>/dev/null; then
+  echo "== Uninstalling pynvml (re-installed by custom nodes)"
+  if [ "A${USE_UV}" == "Atrue" ]; then
+    uv pip uninstall pynvml || error_exit "Failed to uninstall pynvml"
+  else
+    pip3 uninstall -y pynvml || error_exit "Failed to uninstall pynvml"
+  fi
+fi
+
 # If we are using a base directory... 
 if [ ! -z "$BASE_DIRECTORY" ]; then
   if [ ! -d "$BASE_DIRECTORY" ]; then error_exit "BASE_DIRECTORY ($BASE_DIRECTORY) not found or not a directory"; fi
