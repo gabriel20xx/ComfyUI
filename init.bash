@@ -1031,8 +1031,27 @@ echo "-- Command line run: ${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA}"
 # modifying PYTORCH_CUDA_ALLOC_CONF), automatically retry with custom nodes disabled so
 # the user can still access the UI and manage their extensions.
 comfy_log=$(mktemp /tmp/comfy_run_XXXXXX.log)
+# Limit how much output is written to the temporary log file to avoid unbounded growth.
+# All output is still printed to the terminal; only the last COMFY_LOG_MAX_LINES lines
+# are retained in the log for crash-signature inspection.
+COMFY_LOG_MAX_LINES=${COMFY_LOG_MAX_LINES:-10000}
 set +e
-${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA} 2>&1 | tee "$comfy_log"
+${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA} 2>&1 | awk -v max="$COMFY_LOG_MAX_LINES" -v log="$comfy_log" '
+  {
+    buf[NR % max] = $0
+    print
+  }
+  END {
+    start = (NR > max ? NR - max + 1 : 1)
+    for (i = start; i <= NR; i++) {
+      idx = i % max
+      if (idx == 0) {
+        idx = max
+      }
+      print buf[idx] >> log
+    }
+  }
+'
 comfy_rc=${PIPESTATUS[0]}
 set -e
 
