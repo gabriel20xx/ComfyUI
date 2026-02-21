@@ -988,7 +988,16 @@ if [ "A${COMFY_CUDA_STABILITY}" == "Atrue" ]; then
     else
       if [[ "${PYTORCH_CUDA_ALLOC_CONF}" != *"backend:"* ]]; then
         export PYTORCH_CUDA_ALLOC_CONF="backend:native,${PYTORCH_CUDA_ALLOC_CONF}"
+      else
+        # Replace any existing backend value with native to avoid conflicts
+        export PYTORCH_CUDA_ALLOC_CONF=$(echo "${PYTORCH_CUDA_ALLOC_CONF}" | sed 's/backend:[^,]*/backend:native/g')
       fi
+    fi
+    # Tell ComfyUI not to override the allocator backend at runtime, which would
+    # conflict with the backend:native value we just set in PYTORCH_CUDA_ALLOC_CONF
+    # (ComfyUI enables cudaMallocAsync by default via --cuda-malloc)
+    if [[ "${COMFY_CMDLINE_EXTRA}" != *"--disable-cuda-malloc"* ]]; then
+      export COMFY_CMDLINE_EXTRA="${COMFY_CMDLINE_EXTRA} --disable-cuda-malloc"
     fi
   fi
   if [ -z "${PYTORCH_CUDA_ALLOC_CONF+x}" ]; then
@@ -1017,6 +1026,59 @@ echo ""; echo "==================="
 echo "== Running ComfyUI"
 # Full list of CLI options at https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/cli_args.py
 echo "-- Command line run: ${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA}"
-${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA} || error_exit "ComfyUI failed or exited with an error"
+
+# Run ComfyUI; on CUDA allocator conflict (likely caused by a custom node's prestartup
+# modifying PYTORCH_CUDA_ALLOC_CONF), automatically retry with custom nodes disabled so
+# the user can still access the UI and manage their extensions.
+comfy_log=$(mktemp "${TMPDIR:-/tmp}/comfy_run_XXXXXX.log")
+# Limit how much output is written to the temporary log file to avoid unbounded growth.
+# All output is still printed to the terminal; only the last COMFY_LOG_MAX_LINES lines
+# are retained in the log for crash-signature inspection.
+COMFY_LOG_MAX_LINES=${COMFY_LOG_MAX_LINES:-10000}
+set +e
+${COMFY_CMDLINE_BASE} ${COMFY_CMDLINE_EXTRA} 2>&1 | awk -v max="$COMFY_LOG_MAX_LINES" -v logfile="$comfy_log" '
+  {
+    buf[NR % max] = $0
+    print
+  }
+  END {
+    start = (NR > max ? NR - max + 1 : 1)
+    for (i = start; i <= NR; i++) {
+      print buf[i % max] >> logfile
+    }
+  }
+'
+comfy_rc=${PIPESTATUS[0]}
+set -e
+
+if [ $comfy_rc -ne 0 ]; then
+  # Check whether the crash looks like a CUDA allocator backend conflict
+  if grep -q "Allocator backend parsed at runtime != allocator backend parsed at load time" "$comfy_log" 2>/dev/null \
+     || grep -q "CUDAAllocatorConfig::parseAllocatorConfig" "$comfy_log" 2>/dev/null; then
+    echo ""
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo "!! CUDA allocator backend conflict detected."
+    echo "!! A custom node may have modified PYTORCH_CUDA_ALLOC_CONF during its prestartup."
+    echo "!! Retrying ComfyUI with all custom nodes DISABLED (--disable-all-custom-nodes)."
+    echo "!! Once running, use the ComfyUI Manager to identify and disable the problematic node."
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo ""
+
+    # Fix the environment for the retry: force native backend + disable cuda-malloc
+    export PYTORCH_CUDA_ALLOC_CONF="backend:native,expandable_segments:True"
+    retry_extra="${COMFY_CMDLINE_EXTRA}"
+    if [[ "${retry_extra}" != *"--disable-cuda-malloc"* ]]; then
+      retry_extra="${retry_extra} --disable-cuda-malloc"
+    fi
+    retry_extra="${retry_extra} --disable-all-custom-nodes"
+
+    echo "-- Retry command line: ${COMFY_CMDLINE_BASE} ${retry_extra}"
+    ${COMFY_CMDLINE_BASE} ${retry_extra} || error_exit "ComfyUI failed on retry (custom nodes disabled)"
+  else
+    rm -f "$comfy_log"
+    error_exit "ComfyUI failed or exited with an error"
+  fi
+fi
+rm -f "$comfy_log"
 
 ok_exit "Clean exit"
