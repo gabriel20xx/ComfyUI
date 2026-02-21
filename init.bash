@@ -988,7 +988,16 @@ if [ "A${COMFY_CUDA_STABILITY}" == "Atrue" ]; then
     else
       if [[ "${PYTORCH_CUDA_ALLOC_CONF}" != *"backend:"* ]]; then
         export PYTORCH_CUDA_ALLOC_CONF="backend:native,${PYTORCH_CUDA_ALLOC_CONF}"
+      else
+        # Replace any existing backend value with native to avoid conflicts
+        export PYTORCH_CUDA_ALLOC_CONF=$(echo "${PYTORCH_CUDA_ALLOC_CONF}" | sed 's/backend:[a-zA-Z]*/backend:native/g')
       fi
+    fi
+    # Tell ComfyUI not to override the allocator backend at runtime, which would
+    # conflict with the backend:native value we just set in PYTORCH_CUDA_ALLOC_CONF
+    # (ComfyUI enables cudaMallocAsync by default via --cuda-malloc)
+    if [[ "${COMFY_CMDLINE_EXTRA}" != *"--disable-cuda-malloc"* ]]; then
+      export COMFY_CMDLINE_EXTRA="${COMFY_CMDLINE_EXTRA} --disable-cuda-malloc"
     fi
   fi
   if [ -z "${PYTORCH_CUDA_ALLOC_CONF+x}" ]; then
