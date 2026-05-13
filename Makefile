@@ -16,7 +16,8 @@ DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
 DOCKER_BUILD_ARGS=
 
-COMFYUI_NVIDIA_DOCKER_VERSION=20260121
+COMFYUI_NVIDIA_DOCKER_VERSION=20260509
+
 DEFAULT_PLATFORM=linux/amd64
 DEFAULT_ARCH=x86_64
 DGX_PLATFORM=linux/arm64
@@ -31,13 +32,23 @@ DOCKERFILE_DIR=Dockerfile
 DOCKER_ALL=$(shell ls -1 ${COMPONENTS_DIR}/base-* | perl -pe 's%^.+/base-%%' | perl -pe 's%\.Dockerfile%%' | grep -v dgx | sort)
 DOCKER_ALL_DGX=$(shell ls -1 ${COMPONENTS_DIR}/base-* | perl -pe 's%^.+/base-%%' | perl -pe 's%\.Dockerfile%%' | grep dgx | sort)
 
+CURRENT_ARCH=$(shell uname -m)
+
 all:
 	@if [ `echo ${DOCKER_ALL} | wc -w` -eq 0 ]; then echo "No images candidates to build"; exit 1; fi
 	@echo "Available ${COMFYUI_CONTAINER_NAME} ${DOCKER_CMD} images to be built (make targets):"
+	
+	@if [ "A${CURRENT_ARCH}" = "Aaarch64" ]; then make all_dgx; else make all_x86; fi
+
+all_x86:
 	@echo -n "      "; echo ${DOCKER_ALL} | sed -e 's/ /\n      /g'
 	@echo ""
 	@echo "build:          builds all"
-	@echo "build-dgx:      builds for DGX Spark: ${DOCKER_ALL_DGX}"
+
+all_dgx:
+	@echo -n "      "; echo ${DOCKER_ALL_DGX} | sed -e 's/ /\n      /g'
+	@echo ""
+	@echo "build-dgx:      builds for DGX Spark"
 
 build: ${DOCKER_ALL}
 
@@ -175,6 +186,24 @@ docker_rmi_hub:
 	@for i in ${DOCKERHUB_READY} ${DOCKERHUB_READY_LATEST}; do docker rmi $$i; done
 	@echo ""; echo " ** Remaining images with the build label:"
 	@make docker_tag_list
+
+docker_dgx_push:
+	@for i in ${DOCKER_ALL_DGX}; do \
+		image="${DOCKERHUB_REPO}/${COMFYUI_CONTAINER_NAME}:$$i"; \
+		echo "  ++ $$image"; \
+	done
+	@for i in 5 4 3 2 1; do echo -n "$$i "; sleep 1; done; echo ""
+	@for i in ${DOCKER_ALL_DGX}; do \
+		base="${COMFYUI_CONTAINER_NAME}:$$i"; \
+		target="${DOCKERHUB_REPO}/$$base-${COMFYUI_NVIDIA_DOCKER_VERSION}"; \
+		echo "  ++ $$base -> $$target"; \
+		docker tag $$base $$target; \
+		docker push $$target; \
+		target="${DOCKERHUB_REPO}/$$base-latest"; \
+		echo "  ++ $$base -> $$target"; \
+		docker tag $$base $$target; \
+		docker push $$target; \
+	done
 
 #####
 userscripts:

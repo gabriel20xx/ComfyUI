@@ -42,16 +42,8 @@ for cn in $todo; do
   echo "++ Checking custom node: $cn_name"
   cd "$cn"
   status=1
-  if [ -f "pyproject.toml" ]; then
-    echo " ++ Found pyproject.toml, installing"
-    if $PIP3_CMD -r pyproject.toml; then
-      status=0
-    else
-      status=1
-    fi
-    echo " ++ Status: $status"
-  fi
-  # Also try to install requirements.txt
+  # Discard the pyproject.toml as it contains the custom node version
+  # Try to install requirements.txt
   if [ -f "requirements.txt" ]; then
     echo " ++ Found requirements.txt, installing"
     if $PIP3_CMD -r requirements.txt; then

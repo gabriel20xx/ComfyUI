@@ -25,7 +25,6 @@ RUN wget -qO /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute
     && apt-get clean
 
 ARG BASE_DOCKER_FROM=nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
-
 ##### Base
 
 # Install system packages

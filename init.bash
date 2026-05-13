@@ -664,7 +664,7 @@ if [ "$cuda_major" -lt 13 ]; then
   else # CUDA 12.9
     cuda_backend="cu129"
   fi
-else # CUDA 13.0
+else # CUDA 13.0 -- 20260509: still no cu132 available, we will continue to use cu130 for CUDA 13.0+ containers for the time being
   cuda_backend="cu130"
 fi
 

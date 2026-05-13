@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.0.3-cudnn-devel-ubuntu24.04
+FROM nvidia/cuda:13.2.1-cudnn-devel-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -13,18 +13,9 @@ RUN if [ "A${BUILD_APT_PROXY:-}" != "A" ]; then \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-ARG BUILD_ARCH=x86_64 
-# Install NVIDIA CUDA repo keyring (adds /usr/share/keyrings/cuda-archive-keyring.gpg) and remove duplicate CUDA repo definitions to avoid Signed-By conflicts, then add a single canonical CUDA repo entry using the keyring
-RUN wget -qO /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/${BUILD_ARCH}/cuda-keyring_1.1-1_all.deb \
-    && dpkg -i /tmp/cuda-keyring.deb \
-    && rm -f /tmp/cuda-keyring.deb \
-    && rm -f /etc/apt/sources.list.d/cuda*.list /etc/apt/sources.list.d/cuda*.sources \
-    && rm -f /etc/apt/sources.list.d/nvidia*.list /etc/apt/sources.list.d/nvidia*.sources \
-    && echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/${BUILD_ARCH}/ /" > /etc/apt/sources.list.d/cuda-ubuntu2404.list \
-    && apt-get update \
-    && apt-get clean
+ARG BASE_DOCKER_FROM=nvidia/cuda:13.2.1-cudnn-devel-ubuntu24.04
 
-ARG BASE_DOCKER_FROM=nvidia/cuda:13.0.3-cudnn-devel-ubuntu24.04
+ENV TORCH_CUDA_ARCH_LIST=12.1a
 ##### Base
 
 # Install system packages
@@ -97,10 +88,6 @@ RUN it="/etc/build_base.txt"; echo ${BUILD_BASE} > $it && chmod 555 $it
 # Place the init script and its config in / so it can be found by the entrypoint
 COPY --chmod=555 init.bash /comfyui-nvidia_init.bash
 COPY --chmod=555 config.sh /comfyui-nvidia_config.sh
-
-# If the repo was checked out with CRLF line endings (common on Windows), bash will fail with "$'\r': command not found".
-# Normalize to LF inside the image so runtime scripts are reliable.
-RUN sed -i 's/\r$//' /comfyui-nvidia_init.bash /comfyui-nvidia_config.sh
 
 ##### ComfyUI preparation
 # Every sudo group user does not need a password

@@ -24,7 +24,8 @@ RUN wget -qO /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute
     && apt-get update \
     && apt-get clean
 
-ARG BASE_DOCKER_FROM=nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04##### Base
+ARG BASE_DOCKER_FROM=nvidia/cuda:12.6.3-cudnn-devel-ubuntu24.04
+##### Base
 
 # Install system packages
 ENV DEBIAN_FRONTEND=noninteractive

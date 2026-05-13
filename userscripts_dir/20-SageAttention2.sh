@@ -7,7 +7,12 @@
 sageattention_version="v2.2.0"
 #sageattention_version="2-git"
 # To Install from git, uncomment the line above (this will create a folder called SageAttention-2-git)
-# this version is recommended for Blackwell hardware
+
+# The following will attempt to autodetect Blackwell hardware (until new hardware is released)
+BLACKWELL_CHECK=$(nvidia-smi --query-gpu=name --format=csv,noheader | grep -qiE "B100|B200|GB200|GB10|RTX 50|Blackwell" && echo "Blackwell" || echo "NOT")
+if [ "$BLACKWELL_CHECK" == "Blackwell" ]; then sageattention_version="2-git"; fi
+# the "2-git" version is recommended for Blackwell hardware (and required for DGX Spark)
+#
 # For Blackwell, also install 21-SageAttention3-BlackwellOnly.sh
 
 # --- CONFIGURATION ---
@@ -55,6 +60,9 @@ fi
 # -----------------------------------
 
 echo "** Installing SageAttention**"
+
+# If aarch64 (DGX Spark), we must build (no whl available) from git
+if [ "$(uname -m)" == "aarch64" ]; then sageattention_version="2-git"; fi
 
 # We need both uv and the cache directory to enable build with uv
 use_uv=true

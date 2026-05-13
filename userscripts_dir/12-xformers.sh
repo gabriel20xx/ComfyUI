@@ -146,13 +146,13 @@ if [ "A$must_build" == "Atrue" ]; then
   script -a -e -c $tdd/build.cmd $tdd/build.log || error_exit "Failed to build xformers"
   cd ..
   mv $tdd $dd
-echo "${LOG_INFO}INFO:${NC} xformers built successfully"
+  echo "${LOG_OK}SUCCESS:${NC} xformers built successfully"
   exit 0
 fi
 
 whl_cuda13_torch29="https://download.pytorch.org/whl/cu130/xformers-0.0.33.post2-cp39-abi3-manylinux_2_28_x86_64.whl"
 whl_cuda13_torch210="https://download.pytorch.org/whl/cu130/xformers-0.0.34-cp39-abi3-manylinux_2_28_x86_64.whl"
-if [ "$CUDA_VERSION" == "cuda13.0" ] || [ "$CUDA_VERSION" == "cuda13.1" ]; then
+if [ "$CUDA_VERSION" == "cuda13.0" ] || [ "$CUDA_VERSION" == "cuda13.1" ] || [ "$CUDA_VERSION" == "cuda13.2" ]; then
   CMD=""
   if [ "$torch_version" == "2.9" ]; then
     CMD="${PIP3_CMD} $whl_cuda13_torch29"

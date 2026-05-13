@@ -116,11 +116,12 @@ If this version is incompatible with your container runtime, please see the list
 | ubuntu22_cuda12.3-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
 | ubuntu22_cuda12.4-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
 | ubuntu24_cuda12.5-latest | | was `latest` up to `20250320` release |
-| ubuntu24_cuda12.6-latest | `latest` | `latest` as of `20250413` release |
-| ubuntu24_cuda12.8-latest | | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
+| ubuntu24_cuda12.6-latest | | was `latest` up of `20260509` release |
+| ubuntu24_cuda12.8-latest | `latest` as of `20260509` release | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
 | ubuntu24_cuda12.9-latest | | |
-| ubuntu24_cuda13.0-latest | | a DGX Spark version can be built using `make build-dgx` |
-| ubuntu24_cuda13.1-latest | | untested |
+| ubuntu24_cuda13.0-latest | | |
+| ubuntu24_cuda13.1-latest | | |
+| ubuntu24_cuda13.2-latest | | |
 
 For more details on driver capabilities and how to update those, please see [Setting up NVIDIA docker & podman (Ubuntu 24.04)](https://www.gkr.one/blg-20240523-u24-nvidia-docker-podman).
 
@@ -193,7 +194,7 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.7.1. DGX Spark support](#571-dgx-spark-support)
     - [5.7.2. Blackwell support](#572-blackwell-support)
     - [5.7.3. Specifying alternate folder location (ex: --output\_directory) with BASE\_DIRECTORY](#573-specifying-alternate-folder-location-ex---output_directory-with-base_directory)
-    - [5.7.4. run/pip\_cache and run/tmp](#574-runpip_cache-and-runtmp)
+    - [5.7.4. run/pip\_cache, run/uv\_cache and run/tmp](#574-runpip_cache-runuv_cache-and-runtmp)
     - [5.7.5. Direct Cloud deployment: GPU Trader](#575-direct-cloud-deployment-gpu-trader)
     - [5.7.6. Stability Matrix Integration](#576-stability-matrix-integration)
     - [5.7.7. LoRA Manager Integration](#577-lora-manager-integration)
@@ -322,6 +323,8 @@ To run the container on an NVIDIA GPU, mount the specified directory, expose onl
 mkdir run basedir
 podman run --rm -it --userns=keep-id --device nvidia.com/gpu=all -v `pwd`/run:/comfy/mnt -v `pwd`/basedir:/basedir -e WANTED_UID=`id -u` -e WANTED_GID=`id -g` -e BASE_DIRECTORY=/basedir -e SECURITY_LEVEL=normal -p 127.0.0.1:8188:8188 --name comfyui-nvidia docker.io/mmartial/comfyui-nvidia-docker:latest
 ```
+
+If your system has SELinux, you may need to add `:Z` to the various bind mounts (`-v`) in the `podman run` command. For more details, please see [https://github.com/containers/podman/issues/3415](https://github.com/containers/podman/issues/3415).
 
 ### 2.2.2. podman compose up
 
@@ -545,7 +548,9 @@ If the file is not executable, the tool will attempt to make it executable, but 
 
 ⚠️ **WARNING**: This directory is used to run independent user scripts to perform additional operations that might damage your installation. This was added at the request of users trying to install packages from source. **Use with caution**. No support will be provided for issues resulting from the use of this directory. In case of trouble, it is recommended to delete the `run` folder and start a new container.
 
-Scripts (which may not work --please feel free to contribute) provided to demonstrate the capability. None are executable by default. Those scripts were added to enable end users to install components that needed to be built at the time, not yet supported by ComfyUI Manager, or for which no compatible packages were available.
+Scripts (which may not work --please feel free to contribute) provided to add capability to the container. None are executable by default. Those scripts were added to enable end users to install components that needed to be built at the time, not yet supported by ComfyUI Manager, or for which no compatible packages were available.
+
+It is recommended to read at minimum the comments in the header section of each enabled script to understand what it does and how to use it. Some scripts offer to install from known versions or git, you must edit the script to point to the version you want to install.
 
 If a pip version is available, it is recommended to use it instead of the `/userscripts_dir`.
 
@@ -822,12 +827,22 @@ See [extras/FAQ.md] for additional FAQ topics, among which:
 
 ### 5.7.1. DGX Spark support
 
+As of the 20260312 release, a DGX Spark version of the image is available on DockerHub.
+
 The DGX Spark is an ARM64 based GPU, and as such, it requires a different image to be used.
-The base `FROM` comes from nvcr.io as such each end user will need to build their own image on their DGX Spark.
+The base `FROM` is different from x86_64. Beside this, the DGX version is not too different from the other versions for `x86_64` and use the same base components to build and run, just a different base image. The main difference is that the DGX version makes use of the `userscripts_dir` folder to install additional components, such as the required "Sage Attention" used in the proposed [compose-dgx_spark.yml](compose-dgx_spark.yml) file.
 
-Needed: `git`, `make`, `docker`.
+Please check [extras/dgx_spark-helper.sh](extras/dgx_spark-helper.sh) and [compose-dgx_spark.yml](compose-dgx_spark.yml) for example usage.
 
-The following commands will build a version of the image using `linux/arm64` as the platform.
+Recommended steps:
+- in the file where you place the `compose-dgx_spark.yml` file (ie renamed as `compose.yaml` for convention in the rest of this explanation), create two folders as the same user ID as the one used to start the container (usually `1000:1000`): `mkdir run basedir`
+- obtain a copy of [userscripts_dir.tar.gz](https://github.com/mmartial/ComfyUI-Nvidia-Docker/blob/main/assets/userscripts_dir.tar.gz) file and uncompress it in the same folder where your `compose.yaml` is. `tar xvfj userscripts_dir.tar.gz` will create the `userscripts_dir` folder owned by `1000:1000` (`chown` accordingly). You will neeed to `chmod +x` files in there. The `compose.yaml` has a list of recommended numbers in the comments, they match the scripts "numbers". Use `chmod +x userscripts_dir/20-SageAttention2.sh` at minimum to allow the `--use-sage-attention` added to the `compose.yaml`. You will see a few other useful scripts there: 00, 05, 11, 12, 15, 21 for example.
+- Once the preliminary setup is completed, look at the content of the `compose.yaml` and adapt to your requirements; in particular the `WANTED_UID` and `WANTED_GID` or other settings as described in the `README.md`.
+- `docker compose up` should give you access to ComfyUI on `http://localhost:8188`.
+
+The `compose-dgx_spark.yml` contains a few comments to explain the choices made for the DGX Spark as well as some settings to enable after the first run (like `ONNXRUNTIME_DO_NOT_DELETE_GPU_IF_PRESENT` to avoid rebuilding onnxruntime from source on every run -- after the initial build).
+
+To build your own container: needed: `git`, `make`, `docker`. The following commands will build a version of the image using `linux/arm64` as the platform.
 
 ```bash
 # Clone the repository
@@ -841,12 +856,13 @@ make build-dgx
 make docker_tag_list
 ```
 
-The local image name will something like `comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`.
-
-Use this value in the `image:` section of the `docker-compose.yml` file; ie it should read: `image: comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`.
-Similaryly, if starting the container with `docker run`, it should read: `docker run ... comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`.
+The local image name will something like `comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`. Use this value in the `image:` section of the `docker-compose.yml` file; ie it should read: `image: comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`. Similaryly, if starting the container with `docker run`, it should read: `docker run ... comfyui-nvidia-docker:ubuntu24_cuda13.1-dgx`.
 
 ### 5.7.2. Blackwell support
+
+It is recommended to compile SageAttention2 and SageAttention3 (see [userscripts_dir/21-SageAttention3-BlackwellOnly.sh](userscripts_dir/21-SageAttention3-BlackwellOnly.sh)). For SageAttention2, it is recommended to use the `2-git` version (edit the file [20-SageAttention2.sh](userscripts_dir/20-SageAttention2.sh) and change `sageattention_version` to `2-git`).
+
+If using `nvfp4` models, make sure to install [`comfy_kitchen`](https://github.com/Comfy-Org/comfy-kitchen) as well as the [ComfyUI_Kitchen_nvfp4_Converter](https://github.com/tritant/ComfyUI_Kitchen_nvfp4_Converter) custom node. I have succesfully used it to convert multiple CivitAI `fp16` models to `nvfp4` with no issues.
 
 To use the Blackwell GPU (RTX 5080/5090), you will need to make sure to install NVIDIA driver 570 or above. This driver brings support for the RTX 50xx series of GPUs and CUDA 12.8. 
 
@@ -879,7 +895,7 @@ For Unraid users, those steps can done by editing the template from the `Docker`
 1. add a new `Path` entry (name it `output directory`) with a `Container Path` with value `/output`, a `Host Path` with your selected lcoation, for example `/preferredlocation/output`, and an `Access Mode` of `Read/Write`.
 2. edit the existing `COMFY_CMDLINE_EXTRA` variable to add the `--output-directory /output` option.
 
-### 5.7.4. run/pip_cache and run/tmp
+### 5.7.4. run/pip_cache, run/uv_cache and run/tmp
 
 If the `run/pip_cache` and `run/tmp` folders are present, they will be used as the cache folder for pip and the temporary directory for the comfy user. They should be created in the `run` folder before running the container starts with the user with the `WANTED_UID` and `WANTED_GID`.
 
@@ -891,8 +907,9 @@ mkdir -p run basedir run/pip_cache run/tmp
 If used, various `pip install` commands will write content to those folders (mounted as part of `run`) instead of within the container.
 This can be useful to avoid using the container's `writeable` layers, which might be limited in size on Unraid systems.
 
-Those are temporary folders, and can be deleted when the container is stopped.
+The `run/uv_cache` folder is automatically created when using `USE_UV=true`.
 
+Those are temporary folders, and can be deleted when the container is stopped.
 
 ### 5.7.5. Direct Cloud deployment: GPU Trader
 
@@ -1035,6 +1052,8 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20260509: As announced previously, updated `latest` to CUDA 12.8 release. No new features: maintenance release + updated CUDA 13.0. 13.1 and 13.2 versions.
+- 20260312: Added DGX Spark build and notes on Blackwell nvfp4 usage. Update all images to recent pacakges (unless a new feature is added and a rebuild is required, I likely will do this every couple of months to allow the image to stay up to date with published package fixes).
 - 20260121: Added `TORCH_LOCK` environment variable to manually lock torch components to a specific version
 - 20260110: Fix [Issue 106](https://github.com/mmartial/ComfyUI-Nvidia-Docker/issues/106) + Updating git origin to point to the new repository at [Comfy-Org/ComfyUI](https://github.com/Comfy-Org/ComfyUI)
 - 20260106: (no new release) Added new container for DGX Spark 

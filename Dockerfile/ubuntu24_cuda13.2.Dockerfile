@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.0.3-cudnn-devel-ubuntu24.04
+FROM nvidia/cuda:13.2.1-cudnn-devel-ubuntu24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -24,7 +24,7 @@ RUN wget -qO /tmp/cuda-keyring.deb https://developer.download.nvidia.com/compute
     && apt-get update \
     && apt-get clean
 
-ARG BASE_DOCKER_FROM=nvidia/cuda:13.0.3-cudnn-devel-ubuntu24.04
+ARG BASE_DOCKER_FROM=nvidia/cuda:13.2.1-cudnn-devel-ubuntu24.04
 ##### Base
 
 # Install system packages
@@ -97,10 +97,6 @@ RUN it="/etc/build_base.txt"; echo ${BUILD_BASE} > $it && chmod 555 $it
 # Place the init script and its config in / so it can be found by the entrypoint
 COPY --chmod=555 init.bash /comfyui-nvidia_init.bash
 COPY --chmod=555 config.sh /comfyui-nvidia_config.sh
-
-# If the repo was checked out with CRLF line endings (common on Windows), bash will fail with "$'\r': command not found".
-# Normalize to LF inside the image so runtime scripts are reliable.
-RUN sed -i 's/\r$//' /comfyui-nvidia_init.bash /comfyui-nvidia_config.sh
 
 ##### ComfyUI preparation
 # Every sudo group user does not need a password
