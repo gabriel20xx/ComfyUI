@@ -364,10 +364,24 @@ PIP3_BASE="pip3"
 ## uv setup
 USE_UV=${USE_UV:-"false"}
 USE_UV=`lc "${USE_UV}"`
+UPDATE_UV=${UPDATE_UV:-"true"}
 if [ "A${USE_UV}" == "Atrue" ]; then
-  echo "== Installing uv"
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  if [ "A${UPDATE_UV}" == "Atrue" ]; then
+    echo "== Updating uv"
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  else
+    echo "== Using existing uv installation"
+  fi
   export PATH="/home/comfy/.local/bin/:$PATH"
+
+  # Check that uv is properly installed and available, and that python3 is available as well
+  if ! command -v uv &> /dev/null; then
+    error_exit "uv not found after installation"
+  fi
+  if ! command -v python3 &> /dev/null; then
+    error_exit "python3 not found"
+  fi
+
   echo "  == Verify that python3 and uv are installed";
   echo -n "  - python3: "; which python3
   echo -n "    version: "; python3 --version
@@ -627,8 +641,12 @@ if [ "$cuda_major" -lt 13 ]; then
   else # CUDA 12.9
     cuda_backend="cu129"
   fi
-else # CUDA 13.0 -- 20260509: still no cu132 available, we will continue to use cu130 for CUDA 13.0+ containers for the time being
-  cuda_backend="cu130"
+else # CUDA 13.2 -- https://download.pytorch.org/whl/cu132 is now there, but uv does not yet support it -- staying with cu130 for now
+#  if [ "$cuda_minor" -gt 1 ]; then
+#    cuda_backend="cu132"
+#  else # CUDA 13.0 and 13.1 use the same wheel
+    cuda_backend="cu130"
+#  fi
 fi
 
 # check that cuda_backend is set
