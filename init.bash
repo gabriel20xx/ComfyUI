@@ -37,9 +37,7 @@ script_fullname=$0
 echo "  - script_fullname: ${script_fullname}"
 ## 20250418: Removed previous command line arguments to support command line override
 ignore_value="VALUE_TO_IGNORE"
-
-# everyone can read our files by default
-umask 0022
+echo " - started with umask: $(umask)"
 
 # Write a world-writeable file (preferably inside /tmp -- ie within the container)
 write_worldtmpfile() {
@@ -149,6 +147,8 @@ save_env() {
   tosave=$1
   echo "-- Saving environment variables to $tosave"
   env | sort > "$tosave"
+  # environment variables are saved with the original `umask 0022` permissions to allow the smartgallerytoo user to read them and pass them to the smartgallery user
+  chmod 755 "$tosave"
 }
 
 load_env() {
@@ -238,6 +238,10 @@ if [ -f $it ]; then
   echo "-- Loading not already set environment variables from $it"
   load_env $it true
 fi
+
+# default umask: 0022 (files readable by others); allow override using the UMASK environment variable
+umask "${UMASK:-0022}"
+echo "== umask: $(umask)"
 
 # If a command line override was provided, run it
 if [ -f $cmd_override_file ]; then

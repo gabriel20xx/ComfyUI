@@ -186,6 +186,7 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.4.10. USE\_PIPUPGRADE](#5410-use_pipupgrade)
     - [5.4.11. DISABLE\_UPGRADES](#5411-disable_upgrades)
     - [5.4.12. PREINSTALL\_TORCH and PREINSTALL\_TORCH\_CMD](#5412-preinstall_torch-and-preinstall_torch_cmd)
+    - [5.4.13. UMASK](#5413-umask)
   - [5.5. ComfyUI Manager \& Security levels](#55-comfyui-manager--security-levels)
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
@@ -754,6 +755,11 @@ This option is enabled by default. It can be disabled by setting `PREINSTALL_TOR
 The `PREINSTALL_TORCH_CMD` environment variable can be used to override the torch installation command with the one specified in the variable. For example for GTX 1080, try to use `PREINSTALL_TORCH_CMD=pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126`. It is likely also recommended to not set `USE_PIPUPGRADE=false` in this case.
 
 Please note that the `PREINSTALL_TORCH_CMD` variable is not added to the Unraid template, and must be manually added if used.
+
+### 5.4.13. UMASK
+
+The default `umask` is `0022` (files readable by others).
+The environment variable allows the override of this value to `0077` for example (no one but the user).
 
 ## 5.5. ComfyUI Manager & Security levels
 
