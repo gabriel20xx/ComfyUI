@@ -39,6 +39,10 @@ echo "  - script_fullname: ${script_fullname}"
 ignore_value="VALUE_TO_IGNORE"
 echo " - started with umask: $(umask)"
 
+# default umask: 0022 (files readable by others); allow override using the UMASK environment variable
+umask "${UMASK:-0022}"
+echo "=> umask: $(umask)"
+
 # Write a world-writeable file (preferably inside /tmp -- ie within the container)
 write_worldtmpfile() {
   tmpfile=$1
