@@ -39,6 +39,8 @@ services:
       # HF
       HF_TOKEN: ${HF_TOKEN} # set your huggingface token to avoid rate limiting in the .env file (do not expose secrets)
       HF_HUB_DISABLE_TELEMETRY: "true"
+# Default umask: 0022 (files readable by others); allow override using the UMASK environment variable
+#      UMASK: "0077"
     # Using PyTorch recommended settings: removes the limit on locked-in-memory pages for processes in the container + sets the process stack size limit to 64 MiB
     ulimits:
       memlock: -1

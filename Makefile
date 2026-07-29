@@ -16,7 +16,7 @@ DOCKER_CMD=docker
 DOCKER_PRE="NVIDIA_VISIBLE_DEVICES=all"
 DOCKER_BUILD_ARGS=
 
-COMFYUI_NVIDIA_DOCKER_VERSION=20260509
+COMFYUI_NVIDIA_DOCKER_VERSION=20260605
 
 DEFAULT_PLATFORM=linux/amd64
 DEFAULT_ARCH=x86_64
@@ -148,7 +148,7 @@ docker_rmi:
 #LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -2 | head -1)
 # use the 2nd to last entry as the candidate
 #LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -3 | head -1)
-LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -5 | head -1)
+LATEST_ENTRY=$(shell echo ${DOCKER_ALL} | sed -e 's/ /\n/g' | tail -4 | head -1)
 
 LATEST_CANDIDATE=$(shell echo ${COMFYUI_CONTAINER_NAME}:${LATEST_ENTRY})
 
@@ -245,3 +245,4 @@ userscripts:
 #   % make docker_tag_list
 # - Update the Unraid template if needed with new release and environment variables (remember to push to GitHub)
 # - Update the Docker Hub template if needed with tag information(esp when latest changes or is about to change)
+# - Update DGX release: make build-dgx + test + make docker_dgx_push

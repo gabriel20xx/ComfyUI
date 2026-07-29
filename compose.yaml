@@ -50,6 +50,8 @@ services:
 #      - HF_TOKEN=hf_... # set your huggingface token to avoid rate limiting
 # This is set by default, do not change it if you intend to install custom nodes
 #      - NETWORK_MODE=personal_cloud
+# Default umask: 0022 (files readable by others); allow override using the UMASK environment variable
+#      - UMASK=0077
     deploy:
       resources:
         reservations:

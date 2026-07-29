@@ -112,13 +112,13 @@ If this version is incompatible with your container runtime, please see the list
 
 | tag | aka | note |
 | --- | --- | --- |
-| ubuntu22_cuda12.2-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
+| ubuntu22_cuda12.2-latest | | Ubuntu 22 based image, depreacted as of `20260605` release -- see `Dockerfile/_off` for last used version |
 | ubuntu22_cuda12.3-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
 | ubuntu22_cuda12.4-latest | | Ubuntu 22 based image, to be depreacted in 2026 | 
 | ubuntu24_cuda12.5-latest | | was `latest` up to `20250320` release |
-| ubuntu24_cuda12.6-latest | | was `latest` up of `20260509` release |
-| ubuntu24_cuda12.8-latest | `latest` as of `20260509` release | minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
-| ubuntu24_cuda12.9-latest | | |
+| ubuntu24_cuda12.6-latest | | was `latest` up to `20260509` release |
+| ubuntu24_cuda12.8-latest | | was `latest` up to `20260605` release -- minimum required for Blackwell (inc RTX 50xx) hardware (see "Blackwell support" section) |
+| ubuntu24_cuda12.9-latest | `latest` | `latest` as of `20260605` release -- upgrade needed due to ["... Deprecating CUDA 12.8 (Release 2.12)"]https://dev-discuss.pytorch.org/t/introducing-cuda-13-2-and-deprecating-cuda-12-8-release-2-12/3337) |
 | ubuntu24_cuda13.0-latest | | |
 | ubuntu24_cuda13.1-latest | | |
 | ubuntu24_cuda13.2-latest | | |
@@ -187,6 +187,7 @@ It is recommended that a container monitoring tool be available to watch the log
     - [5.4.11. DISABLE\_UPGRADES](#5411-disable_upgrades)
     - [5.4.12. PREINSTALL\_TORCH and PREINSTALL\_TORCH\_CMD](#5412-preinstall_torch-and-preinstall_torch_cmd)
     - [5.4.13. COMFY\_CUDA\_STABILITY and COMFY\_CUDA\_DEBUG](#5413-comfy_cuda_stability-and-comfy_cuda_debug)
+    - [5.4.14. UMASK](#5414-umask)
   - [5.5. ComfyUI Manager \& Security levels](#55-comfyui-manager--security-levels)
   - [5.6. Shell within the Docker image](#56-shell-within-the-docker-image)
     - [5.6.1. Alternate method](#561-alternate-method)
@@ -616,6 +617,8 @@ We will attempt to set it to the value of the `USE_UV` environment variable. Sim
 It is currently not set to `true` by default.
 It is recommended to set `USE_UV=true` as it make the container start faster and allow for a simpler nodes installation process.
 
+There is also a `UPDATE_UV` variable that can be set to `false` (its default when not set is `true`) to disable `uv` updating itself. This was added to support [Reddit: [Guide] How to securely run ComfyUI on Windows (Docker>WSL2) [RTX 3090, logic can be applied to other hardware]](https://www.reddit.com/r/StableDiffusion/comments/1tq46q0/guide_how_to_securely_run_comfyui_on_windows/).
+
 ### 5.4.2. WANTED_UID and WANTED_GID
 
 The `WANTED_UID` and `WANTED_GID` environment variables will be used to set the `comfy` user within the container.
@@ -774,6 +777,10 @@ This is most often triggered by custom nodes that load CUDA kernels from multipl
 - `COMFY_CUDA_DEBUG` (default: `false`)
   - When enabled, sets `CUDA_LAUNCH_BLOCKING=1` and `TORCH_SHOW_CPP_STACKTRACES=1` to make CUDA errors easier to attribute.
   - This is slower and intended for debugging.
+### 5.4.14. UMASK
+
+The default `umask` is `0022` (files readable by others).
+The environment variable allows the override of this value to `0077` for example (no one but the user).
 
 ## 5.5. ComfyUI Manager & Security levels
 
@@ -1052,6 +1059,7 @@ For more details, see [this thread on the Unraid forum](https://forums.unraid.ne
 
 # 7. Changelog
 
+- 20260605: Added `UPDATE_UV` variable, moving `latest` to CUDA 12.9 release (following ["Introducing CUDA 13.2 and Deprecating CUDA 12.8 (Release 2.12)"](https://dev-discuss.pytorch.org/t/introducing-cuda-13-2-and-deprecating-cuda-12-8-release-2-12/3337) + deprecation of CUDA 12.2 release.
 - 20260509: As announced previously, updated `latest` to CUDA 12.8 release. No new features: maintenance release + updated CUDA 13.0. 13.1 and 13.2 versions.
 - 20260312: Added DGX Spark build and notes on Blackwell nvfp4 usage. Update all images to recent pacakges (unless a new feature is added and a rebuild is required, I likely will do this every couple of months to allow the image to stay up to date with published package fixes).
 - 20260121: Added `TORCH_LOCK` environment variable to manually lock torch components to a specific version
